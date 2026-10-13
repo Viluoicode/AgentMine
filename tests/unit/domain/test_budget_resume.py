@@ -269,7 +269,7 @@ def test_approval_request_is_not_budget_wait_and_wrong_scope_cannot_wait(
 
 
 def test_resume_assessment_validation(assessment: ResumeAssessment) -> None:
-    for score in (Decimal(-1), Decimal("NaN"), Decimal("Infinity")):
+    for score in (Decimal(-1), Decimal("100.01"), Decimal("NaN"), Decimal("Infinity")):
         with pytest.raises(DomainError):
             replace(assessment, score=score)
     with pytest.raises(DomainError):

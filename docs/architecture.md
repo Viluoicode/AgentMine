@@ -79,3 +79,11 @@ ports and applies engine results, retaining unknown/human-review assessments in
 ELIGIBILITY_CHECK. No SDK, framework, LLM or infrastructure dependency is added.
 See [eligibility engine](eligibility-engine.md) and
 [ADR 0005](adr/0005-deterministic-eligibility.md).
+
+## Milestone 2D
+
+Domain owns economic forecasts and configurable explainable scoring. Application
+replaces caller-selected values/scores with calculated assessments and retains the
+complete policy/components in aggregates and EvaluationRecord through existing ports.
+Dependency direction is unchanged. No infrastructure or runtime dependency is added.
+See [economic scoring](economic-scoring.md) and [ADR 0006](adr/0006-economic-scoring-policy.md).

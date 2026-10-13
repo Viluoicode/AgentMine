@@ -12,3 +12,5 @@ Future decision topics include domain boundaries, lifecycle/recovery, budget and
 value accounting, approval binding, submission idempotency, persistence consistency,
 AI/QA policy, integration contracts, runtime and configuration. Milestone 1A does
 not settle those policies.
+
+Recorded: [ADR 0006: Economic scoring policy](0006-economic-scoring-policy.md).

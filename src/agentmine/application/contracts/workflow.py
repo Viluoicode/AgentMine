@@ -2,12 +2,12 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from decimal import Decimal
 
 from agentmine.application.contracts.ai import ReferencedText
 from agentmine.domain.budget import AuthorizationDecision
 from agentmine.domain.money import Money
 from agentmine.domain.opportunity import Opportunity
+from agentmine.domain.scoring import ScoringSignals
 from agentmine.domain.values import Reference
 from agentmine.domain.work import Deliverable, QAResult, TaskType
 
@@ -24,7 +24,7 @@ class PlanTaskRequest:
 class ScoreRequest:
     opportunity_reference: Reference
     evaluation_reference: Reference
-    score: Decimal
+    signals: ScoringSignals
     evidence: tuple[Reference, ...]
 
 

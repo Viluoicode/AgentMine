@@ -137,3 +137,13 @@ business concurrency requirement, with no chosen database implementation.
 Use cases and test-only fakes now exist. Production implementations, real external
 contract verification and adapter conformance remain deferred. See
 [core use cases](application-use-cases.md).
+
+## Milestone 2D evaluation records
+
+EvaluationRecord now retains the complete ScoringAssessment: economic inputs,
+calculated values, signals, components, recommendation/reason codes and policy
+snapshot. Summary expected_value/score must match that calculation. Existing
+EvaluationRepository ownership, immutable-identity conflicts and chronological
+history requirements remain unchanged. Future adapters must preserve these fields.
+LLMProvider evaluation advice remains advisory and is unused by the deterministic
+EvaluateOpportunity/ScoreOpportunity path. No production adapter is introduced.

@@ -14,7 +14,10 @@ from fakes import (
     FakeSource,
     FakeSubmissions,
     FakeVerifier,
+    economic_inputs,
     eligibility_request,
+    scoring_policy,
+    scoring_signals,
 )
 
 from agentmine.application.contracts.ai import ReferencedText
@@ -44,12 +47,14 @@ from agentmine.application.use_cases.planning import (
 )
 from agentmine.application.use_cases.settlement import SubmitTask, TrackOutcome, VerifyPayment
 from agentmine.domain.budget import Budget, BudgetPolicy, CostRecording
+from agentmine.domain.economics import SignalEstimate
 from agentmine.domain.eligibility import EligibilityPolicy, Requirement
 from agentmine.domain.eligibility_rules import EligibilityEngine
 from agentmine.domain.errors import DomainError
-from agentmine.domain.finance import ExpectedValue, Reward
+from agentmine.domain.finance import Reward
 from agentmine.domain.money import Money
 from agentmine.domain.opportunity import Opportunity, OpportunityState
+from agentmine.domain.scoring import Recommendation
 from agentmine.domain.spending import AuthorizationStatus, RecordingIssue
 from agentmine.domain.values import Reference
 from agentmine.domain.work import (
@@ -129,7 +134,7 @@ def world() -> World:
     )
 
 
-def scored(world: World) -> Opportunity:
+def evaluated(world: World) -> Opportunity:
     DiscoverOpportunities(world.source, world.opportunities, world.clock).execute(
         DiscoveryRequest(10)
     )
@@ -140,16 +145,20 @@ def scored(world: World) -> Opportunity:
         world.clock,
         EligibilityEngine(EligibilityPolicy(timedelta(hours=1))),
     ).execute(eligibility_request(world.reference))
-    EvaluateOpportunity(world.opportunities, world.source, world.clock).execute(
-        world.reference, ExpectedValue(usd("60"), "Caller-supplied economic assessment")
+    return EvaluateOpportunity(world.opportunities, world.source, world.clock).execute(
+        world.reference, economic_inputs()
     )
+
+
+def scored(world: World) -> Opportunity:
+    evaluated(world)
     return ScoreOpportunity(
-        world.opportunities, world.evaluations, world.source, world.clock
+        world.opportunities, world.evaluations, world.source, world.clock, scoring_policy()
     ).execute(
         ScoreRequest(
             world.reference,
             Reference("evaluation"),
-            Decimal("8"),
+            scoring_signals(),
             (Reference("assessment-evidence"),),
         )
     )
@@ -248,7 +257,7 @@ def test_ineligible_cannot_be_evaluated_or_planned(world: World) -> None:
     assert result.state == OpportunityState.INELIGIBLE
     with pytest.raises(DomainError):
         EvaluateOpportunity(world.opportunities, world.source, world.clock).execute(
-            world.reference, ExpectedValue(usd("60"), "Estimate")
+            world.reference, economic_inputs()
         )
     assert world.current().state == OpportunityState.INELIGIBLE
 
@@ -534,3 +543,105 @@ def test_mismatched_payment_currency_cannot_create_verified_revenue(world: World
         VerifyPayment(world.opportunities, world.verifier, world.clock).execute(world.reference)
     assert world.current().state == OpportunityState.ACCEPTED
     assert world.current().verified_revenue == usd("0")
+
+
+def score_command(world: World) -> ScoreRequest:
+    return ScoreRequest(
+        world.reference,
+        Reference("evaluation"),
+        scoring_signals(),
+        (Reference("assessment-evidence"),),
+    )
+
+
+def scorer(world: World) -> ScoreOpportunity:
+    return ScoreOpportunity(
+        world.opportunities, world.evaluations, world.source, world.clock, scoring_policy()
+    )
+
+
+def test_economics_and_components_are_persisted_without_ai_or_ledger_calls(world: World) -> None:
+    opportunity = scored(world)
+    record = world.evaluations.get(Reference("evaluation"))
+    assert record is not None
+    assert record.scoring_assessment == opportunity.scoring_assessment
+    assert record.expected_value.amount == usd("60")
+    assert record.score == Decimal("84.00")
+    assert record.scoring_assessment.recommendation == Recommendation.ATTEMPT
+    assert record.scoring_assessment.economics.inputs == economic_inputs()
+    assert len(record.scoring_assessment.components) == 6
+    assert record.evidence == (Reference("assessment-evidence"),)
+    assert not world.provider.calls
+    assert not world.ledger.audits
+    assert opportunity.verified_revenue == usd("0")
+
+
+def test_calculated_assessments_retry_without_duplicate_records_or_revisions(world: World) -> None:
+    original = scored(world)
+    revision = world.opportunities.snapshots[world.reference].revision
+    assert (
+        EvaluateOpportunity(world.opportunities, world.source, world.clock).execute(
+            world.reference, economic_inputs()
+        )
+        == original
+    )
+    assert scorer(world).execute(score_command(world)) == original
+    assert world.opportunities.snapshots[world.reference].revision == revision
+    assert len(world.evaluations.records) == 1
+
+
+@pytest.mark.parametrize("changed", ["signal", "policy", "evidence"])
+def test_reused_evaluation_reference_rejects_changed_assessment(world: World, changed: str) -> None:
+    scored(world)
+    use_case = scorer(world)
+    command = score_command(world)
+    if changed == "signal":
+        command = replace(
+            command,
+            signals=replace(command.signals, risk=SignalEstimate(Decimal("0.5"), "New evidence")),
+        )
+    elif changed == "policy":
+        use_case = replace(use_case, policy=replace(use_case.policy, version="v2"))
+    else:
+        command = replace(command, evidence=(Reference("different"),))
+    with pytest.raises(PortError) as error:
+        use_case.execute(command)
+    assert error.value.code == PortErrorCode.CONFLICT
+    assert len(world.evaluations.records) == 1
+
+
+def test_score_record_recovers_after_aggregate_conflict_without_new_timestamp(world: World) -> None:
+    evaluated(world)
+    world.opportunities.fail_save = True
+    with pytest.raises(PortError):
+        scorer(world).execute(score_command(world))
+    record = world.evaluations.get(Reference("evaluation"))
+    assert record is not None
+    assert world.current().state == OpportunityState.EVALUATED
+    world.opportunities.fail_save = False
+    world.clock.instant += timedelta(seconds=1)
+    recovered = scorer(world).execute(score_command(world))
+    assert recovered.state == OpportunityState.SCORED
+    assert world.evaluations.get(record.reference) == record
+    assert len(world.evaluations.records) == 1
+
+
+def test_scoring_rejects_expired_opportunity_before_writes(world: World) -> None:
+    evaluated(world)
+    assert world.source.deadline is not None
+    world.clock.instant = world.source.deadline
+    with pytest.raises(ApplicationError) as error:
+        scorer(world).execute(score_command(world))
+    assert error.value.code == ApplicationErrorCode.EXPIRED
+    assert not world.evaluations.records
+    assert world.current().state == OpportunityState.EVALUATED
+
+
+def test_evaluation_record_cannot_disagree_with_calculated_assessment(world: World) -> None:
+    scored(world)
+    record = world.evaluations.get(Reference("evaluation"))
+    assert record is not None
+    with pytest.raises(DomainError):
+        replace(record, score=Decimal("20"))
+    with pytest.raises(DomainError):
+        replace(record, expected_value=replace(record.expected_value, amount=usd("10")))

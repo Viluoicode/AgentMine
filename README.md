@@ -103,6 +103,13 @@ facts/profile inputs and refreshes source availability before applying domain ru
 Unknown/human-review decisions remain pending and cannot authorize work. See
 [eligibility engine](docs/eligibility-engine.md).
 
+
+Milestone 2D adds deterministic expected-net-value calculations and an explainable
+0?100 opportunity score with REJECT/WATCH/RECOMMEND/ATTEMPT recommendations. Domain
+retains subjective predictions, cost estimates, signal components and policy snapshots;
+Application calculates and persists assessments through existing ports. No forecasts
+create verified revenue. See [economic scoring policy](docs/economic-scoring.md).
+
 AWS Lambda, DynamoDB and Bedrock are future infrastructure choices. No AWS or
 marketplace integration is included. See [milestones](docs/milestones.md) and
 [ADR directory](docs/adr/README.md).

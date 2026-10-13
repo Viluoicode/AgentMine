@@ -8,6 +8,7 @@ from agentmine.domain.budget import AuthorizationDecision, Budget, CostRecording
 from agentmine.domain.errors import DomainError, ErrorCode
 from agentmine.domain.finance import ExpectedValue
 from agentmine.domain.opportunity import Opportunity
+from agentmine.domain.scoring import ScoringAssessment
 from agentmine.domain.values import Reference, require_aware_timestamp
 from agentmine.domain.work import Eligibility
 
@@ -47,11 +48,22 @@ class EvaluationRecord:
     score: Decimal
     evaluated_at: datetime
     evidence: tuple[Reference, ...]
+    scoring_assessment: ScoringAssessment
 
     def __post_init__(self) -> None:
         require_aware_timestamp(self.evaluated_at)
-        if not isinstance(self.score, Decimal) or not self.score.is_finite() or self.score < 0:
-            raise DomainError(ErrorCode.INVALID_VALUE, "score", "Finite nonnegative score required")
+        if (
+            not isinstance(self.score, Decimal)
+            or not self.score.is_finite()
+            or not 0 <= self.score <= 100
+        ):
+            raise DomainError(ErrorCode.INVALID_VALUE, "score", "Finite score in [0, 100] required")
+
+        if (
+            self.score != self.scoring_assessment.score
+            or self.expected_value != self.scoring_assessment.economics.expected_net_value
+        ):
+            raise DomainError(ErrorCode.EVIDENCE_MISMATCH, "assessment", "Score/forecast mismatch")
 
 
 @dataclass(frozen=True, slots=True)

@@ -10,10 +10,12 @@ from enum import StrEnum
 from typing import TypedDict, Unpack
 
 from agentmine.domain.budget import AuthorizationDecision, Budget
+from agentmine.domain.economics import EconomicAssessment
 from agentmine.domain.errors import DomainError, ErrorCode
 from agentmine.domain.finance import ExpectedValue, Reward, RewardStage
 from agentmine.domain.money import Money
 from agentmine.domain.revalidation import ResumeAssessment
+from agentmine.domain.scoring import ScoringAssessment
 from agentmine.domain.spending import AuthorizationStatus, OperationType, SpendingRequest
 from agentmine.domain.values import Reference, require_aware_timestamp, require_reference
 from agentmine.domain.work import (
@@ -37,6 +39,8 @@ class _OpportunityChanges(TypedDict, total=False):
 
     eligibility: Eligibility
     expected_value: ExpectedValue
+    economic_assessment: EconomicAssessment | None
+    scoring_assessment: ScoringAssessment | None
     score: Decimal
     task: Task
     execution: Execution
@@ -142,6 +146,8 @@ class Opportunity:
     potential_reward: Reward
     eligibility: Eligibility | None = field(default=None, init=False)
     expected_value: ExpectedValue | None = field(default=None, init=False)
+    economic_assessment: EconomicAssessment | None = field(default=None, init=False)
+    scoring_assessment: ScoringAssessment | None = field(default=None, init=False)
     score: Decimal | None = field(default=None, init=False)
     task: Task | None = field(default=None, init=False)
     execution: Execution | None = field(default=None, init=False)
@@ -206,16 +212,25 @@ class Opportunity:
         )
         return self._move(target, eligibility=assessment)
 
-    def evaluate(self, estimate: ExpectedValue) -> Opportunity:
-        self.potential_reward.amount.require_same_currency(estimate.amount)
-        return self._move(OpportunityState.EVALUATED, expected_value=estimate)
+    def evaluate(self, estimate: ExpectedValue | EconomicAssessment) -> Opportunity:
+        assessment = estimate if isinstance(estimate, EconomicAssessment) else None
+        value = assessment.expected_net_value if assessment is not None else estimate
+        assert isinstance(value, ExpectedValue)
+        self.potential_reward.amount.require_same_currency(value.amount)
+        if assessment is not None and assessment.potential_reward != self.potential_reward:
+            raise DomainError(ErrorCode.EVIDENCE_MISMATCH, "reward", "Forecast reward mismatch")
+        return self._move(
+            OpportunityState.EVALUATED, expected_value=value, economic_assessment=assessment
+        )
 
-    def assign_score(self, score: Decimal) -> Opportunity:
-        if not isinstance(score, Decimal) or not score.is_finite() or score < 0:
-            raise DomainError(
-                ErrorCode.INVALID_VALUE, "score", "Score must be finite and nonnegative"
-            )
-        return self._move(OpportunityState.SCORED, score=score)
+    def assign_score(self, score: Decimal | ScoringAssessment) -> Opportunity:
+        assessment = score if isinstance(score, ScoringAssessment) else None
+        value = assessment.score if assessment is not None else score
+        if not isinstance(value, Decimal) or not value.is_finite() or not 0 <= value <= 100:
+            raise DomainError(ErrorCode.INVALID_VALUE, "score", "Finite score in [0, 100] required")
+        if assessment is not None and assessment.economics != self.economic_assessment:
+            raise DomainError(ErrorCode.EVIDENCE_MISMATCH, "economics", "Scoring forecast mismatch")
+        return self._move(OpportunityState.SCORED, score=value, scoring_assessment=assessment)
 
     def skip(self, reason: str) -> Opportunity:
         if not reason.strip():
@@ -357,6 +372,8 @@ class Opportunity:
             eligibility=assessment.eligibility,
             expected_value=assessment.expected_value,
             score=assessment.score,
+            economic_assessment=None,
+            scoring_assessment=None,
             waiting_request=None,
             waiting_state=None,
         )

@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
+from decimal import Decimal
 
 from agentmine.application.contracts.ai import (
     AIResponse,
@@ -40,6 +41,7 @@ from agentmine.application.contracts.submission import (
 from agentmine.application.contracts.workflow import ExecuteTaskRequest
 from agentmine.application.errors import PortError, PortErrorCode
 from agentmine.domain.budget import Budget
+from agentmine.domain.economics import EconomicInputs, EstimatedCosts, SignalEstimate
 from agentmine.domain.eligibility import (
     AIParticipationPolicy,
     EligibilityFacts,
@@ -52,6 +54,7 @@ from agentmine.domain.eligibility import (
 from agentmine.domain.finance import Cost, CostCategory, Reward, RewardStage
 from agentmine.domain.money import Money
 from agentmine.domain.opportunity import Opportunity
+from agentmine.domain.scoring import ScoringPolicy, ScoringSignals
 from agentmine.domain.spending import CostRecord
 from agentmine.domain.values import Reference
 from agentmine.domain.work import (
@@ -378,3 +381,21 @@ class FakeVerifier:
             payment,
             "Fake verification",
         )
+
+
+def economic_inputs() -> EconomicInputs:
+    return EconomicInputs(
+        SignalEstimate(Decimal("0.8"), "Subjective success forecast"),
+        EstimatedCosts(*(Money(Decimal(5), "USD") for _ in range(4))),
+        "Four estimated costs; not provider billing",
+    )
+
+
+def scoring_signals() -> ScoringSignals:
+    favorable = SignalEstimate(Decimal(1), "Test scenario: favorable")
+    low = SignalEstimate(Decimal(0), "Test scenario: low risk/competition")
+    return ScoringSignals(low, low, favorable, favorable, favorable)
+
+
+def scoring_policy() -> ScoringPolicy:
+    return ScoringPolicy("v1", Money(Decimal(100), "USD"), "Explicit test value target")

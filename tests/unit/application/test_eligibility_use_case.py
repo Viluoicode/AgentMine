@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
-from fakes import FakeClock, FakeOpportunities, FakeSource, eligibility_request
+from fakes import FakeClock, FakeOpportunities, FakeSource, economic_inputs, eligibility_request
 
 from agentmine.application.contracts.eligibility import EligibilityCheckRequest
 from agentmine.application.contracts.opportunities import (
@@ -39,7 +39,7 @@ from agentmine.domain.eligibility import (
 )
 from agentmine.domain.eligibility_rules import EligibilityEngine
 from agentmine.domain.errors import DomainError
-from agentmine.domain.finance import ExpectedValue, Reward
+from agentmine.domain.finance import Reward
 from agentmine.domain.money import Money
 from agentmine.domain.opportunity import Opportunity, OpportunityState
 from agentmine.domain.values import Reference
@@ -117,7 +117,7 @@ def test_human_review_stays_pending_and_cannot_evaluate_or_plan(case: Case) -> N
     assert result.eligibility.reasons == (EligibilityReason.SUSPICIOUS_PAYMENT_REQUIREMENTS,)
     with pytest.raises(DomainError):
         EvaluateOpportunity(case.repository, case.source, case.clock).execute(
-            result.reference, ExpectedValue(Money(Decimal(50), "USD"), "Estimate")
+            result.reference, economic_inputs()
         )
     with pytest.raises(DomainError):
         PlanTask(case.repository, case.source, case.clock).execute(

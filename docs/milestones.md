@@ -75,3 +75,11 @@ no automatic permission. See [eligibility engine](eligibility-engine.md).
 Acceptance: extensive rule/combination/boundary and fake application tests cover
 pending resolution and downstream/budget-resume guards alongside existing checks.
 No LLM call, dependency or concrete adapter is introduced.
+
+## Milestone 2D: Economic Engine and Opportunity Scoring
+
+Scope: deterministic reward/probability/four-category-cost calculation, explicit
+subjective predictions, normalized signals, 0?100 weighted scoring, explainable
+recommendations and stored components/policy snapshots. Numeric input tests and
+fake-only application persistence/retry tests verify forecasts never create revenue.
+See [policy and limitations](economic-scoring.md). No dependency or infrastructure added.

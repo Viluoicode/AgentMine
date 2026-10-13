@@ -1,4 +1,4 @@
-"""Free discovery-to-plan orchestration; supplied assessments avoid invented policy."""
+"""Free discovery-to-plan orchestration using explicit domain policies."""
 
 from dataclasses import dataclass
 
@@ -15,8 +15,9 @@ from agentmine.application.ports.repositories import EvaluationRepository, Oppor
 from agentmine.application.ports.services import Clock, OpportunitySource
 from agentmine.application.use_cases.context import load, refresh, save
 from agentmine.application.use_cases.eligibility import CheckEligibility as CheckEligibility
-from agentmine.domain.finance import ExpectedValue
+from agentmine.domain.economics import EconomicAssessment, EconomicInputs
 from agentmine.domain.opportunity import Opportunity, OpportunityState
+from agentmine.domain.scoring import ScoringAssessment, ScoringPolicy
 from agentmine.domain.values import Reference, require_aware_timestamp
 from agentmine.domain.work import Task, TaskType
 
@@ -73,12 +74,13 @@ class EvaluateOpportunity:
     source: OpportunitySource
     clock: Clock
 
-    def execute(self, reference: Reference, expected_value: ExpectedValue) -> Opportunity:
+    def execute(self, reference: Reference, inputs: EconomicInputs) -> Opportunity:
         previous = load(self.opportunities, reference)
-        if previous.value.expected_value == expected_value:
+        assessment = EconomicAssessment(previous.value.potential_reward, inputs)
+        if previous.value.economic_assessment == assessment:
             return previous.value
         refresh(self.opportunities, self.source, self.clock, reference)
-        return save(self.opportunities, previous, previous.value.evaluate(expected_value))
+        return save(self.opportunities, previous, previous.value.evaluate(assessment))
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,34 +89,37 @@ class ScoreOpportunity:
     evaluations: EvaluationRepository
     source: OpportunitySource
     clock: Clock
+    policy: ScoringPolicy
 
     def execute(self, request: ScoreRequest) -> Opportunity:
         previous = load(self.opportunities, request.opportunity_reference)
+        economics = previous.value.economic_assessment
+        if economics is None or previous.value.eligibility is None:
+            raise ApplicationError(
+                ApplicationErrorCode.INVALID_STATE, "score", "Calculated economics required"
+            )
+        assessment = ScoringAssessment(economics, request.signals, self.policy)
         existing = self.evaluations.get(request.evaluation_reference)
         if existing is not None and (
             existing.opportunity_reference != request.opportunity_reference
-            or existing.score != request.score
+            or existing.scoring_assessment != assessment
             or existing.evidence != request.evidence
             or existing.eligibility != previous.value.eligibility
-            or existing.expected_value != previous.value.expected_value
         ):
             raise PortError(PortErrorCode.CONFLICT, "score", "Assessment identity reused")
-        if previous.value.score == request.score and existing is not None:
+        if previous.value.scoring_assessment == assessment and existing is not None:
             return previous.value
         refresh(self.opportunities, self.source, self.clock, request.opportunity_reference)
-        updated = previous.value.assign_score(request.score)
-        if updated.eligibility is None or updated.expected_value is None:
-            raise ApplicationError(
-                ApplicationErrorCode.INVALID_STATE, "score", "Assessment missing"
-            )
+        updated = previous.value.assign_score(assessment)
         record = existing or EvaluationRecord(
             request.evaluation_reference,
             updated.reference,
-            updated.eligibility,
-            updated.expected_value,
-            request.score,
+            previous.value.eligibility,
+            economics.expected_net_value,
+            assessment.score,
             self.clock.now(),
             request.evidence,
+            assessment,
         )
         self.evaluations.save(record)
         return save(self.opportunities, previous, updated)

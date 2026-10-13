@@ -12,8 +12,8 @@ Domain models and guarded public actions remain the lifecycle/policy authority.
 | DiscoverOpportunities | DiscoveryRequest; validate batch bounds/discovered snapshots, preserve source provenance, create missing aggregates without downgrading rediscovered work |
 | NormalizeOpportunity | Opportunity reference; apply domain normalization transition to an already business-shaped source observation |
 | CheckEligibility | EligibilityCheckRequest and injected EligibilityEngine; refresh facts, evaluate deterministic rules and persist resolved/pending assessments |
-| EvaluateOpportunity | Reference and ExpectedValue; refresh source facts and apply a supplied economic assessment |
-| ScoreOpportunity | ScoreRequest; refresh, apply supplied score, persist immutable final EvaluationRecord and aggregate |
+| EvaluateOpportunity | Reference and EconomicInputs; refresh source facts, calculate and persist Domain EconomicAssessment |
+| ScoreOpportunity | ScoreRequest signals and injected ScoringPolicy; refresh, calculate explainable score, persist full EvaluationRecord and aggregate |
 | PlanTask | PlanTaskRequest; restrict task type, refresh open/deadline facts and create a supported Task with checked deadline |
 | ExecuteTask | ExecuteTaskRequest; refresh facts, authorize/commit AI budget, journal execution, invoke injected work provider, retain response, record known actual cost, store content/deliverable and advance to QA_PENDING |
 | RunQA | Reference and resolved QAResult; persist version-bound assessment and apply domain pass/rework branch |
@@ -24,9 +24,10 @@ Domain models and guarded public actions remain the lifecycle/policy authority.
 | VerifyPayment | Reference; observe payment for accepted submission, correlate identity/time and apply verified payment; pending/unverifiable observations do not create revenue |
 
 Milestone 2C implements deterministic eligibility from normalized facts and participant
-capabilities. Expected-value calculation, scoring and QA still use explicit resolved
-assessments, without inventing criteria or AI assertions of eligibility/payment. See
-[eligibility engine](eligibility-engine.md).
+capabilities. Milestone 2D calculates economics and scoring from explicit forecasts
+and a documented policy; QA remains a supplied resolved assessment. Neither forecasts
+nor advice assert eligibility/payment. See [eligibility engine](eligibility-engine.md)
+and [economic scoring](economic-scoring.md).
 Source observations are already business-shaped: normalization here is the guarded
 milestone transition, not marketplace parsing. Final evaluation audit is saved when
 scoring completes. Evaluation and QA make no paid calls.
@@ -94,7 +95,7 @@ unwired at this stage.
 
 ## Limits and validation
 
-No automatic economic/QA policy, scheduler, general replan, failed-QA
+No automated QA policy, scheduler, general replan, failed-QA
 execution rework, provider/billing reconciliation or automatic budget-wait resumption
 coordinator is implemented. Domain's guarded budget-resume capability remains intact;
 regular use cases cannot bypass it. Pending outcome/payment observations are returned

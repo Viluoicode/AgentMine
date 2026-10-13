@@ -120,7 +120,7 @@ def test_estimates_must_match_currency_and_scores_are_finite_nonnegative(
         )
     assert error.value.code == ErrorCode.CURRENCY_MISMATCH
     evaluated = lifecycle[OpportunityState.EVALUATED]
-    for score in (Decimal(-1), Decimal("NaN"), Decimal("Infinity")):
+    for score in (Decimal(-1), Decimal("100.01"), Decimal("NaN"), Decimal("Infinity")):
         with pytest.raises(DomainError):
             evaluated.assign_score(score)
     assert evaluated.assign_score(Decimal(0)).state == OpportunityState.SCORED

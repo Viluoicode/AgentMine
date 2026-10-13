@@ -33,8 +33,8 @@ class ResumeAssessment:
                 ErrorCode.INVALID_VALUE, "is_open", "Explicit refreshed status required"
             )
         if self.score is not None and (
-            not isinstance(self.score, Decimal) or not self.score.is_finite() or self.score < 0
+            not isinstance(self.score, Decimal)
+            or not self.score.is_finite()
+            or not 0 <= self.score <= 100
         ):
-            raise DomainError(
-                ErrorCode.INVALID_VALUE, "score", "Score must be finite and nonnegative"
-            )
+            raise DomainError(ErrorCode.INVALID_VALUE, "score", "Score must be finite in [0, 100]")

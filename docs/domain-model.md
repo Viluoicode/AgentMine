@@ -84,3 +84,15 @@ and submission timestamps are caller supplied. Full audit persistence remains fu
 
 Reference formats and currency syntax do not imply validation against any external
 registry, currency precision rule or API contract.
+
+## Milestone 2D economics and scoring
+
+EconomicInputs/EstimatedCosts/SignalEstimate retain explained subjective forecasts.
+EconomicAssessment calculates expected gross and net value; ScoringPolicy,
+ScoringWeights, ScoringSignals and ScoringAssessment derive bounded score components
+and explainable recommendations. Opportunity binds structured assessments to its
+potential reward/evaluation and stores them through subsequent lifecycle transitions.
+All scores, including resume assessments, are bounded to [0, 100]. Legacy budget
+resumption clears superseded structured forecasts when supplied a fresh manual
+value/score. Financial stages and verified-revenue guards remain unchanged.
+See [economic scoring policy](economic-scoring.md).
