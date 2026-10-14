@@ -170,3 +170,11 @@ ResearchJournal owns immutable plans/results and atomic dispatch claims. A missi
 after a claim requires reconciliation. SQLite implements this port using existing snapshots.
 BudgetManager accepts an explicit cost category, defaulting to AI for existing callers.
 See [research contracts, artifact shapes and ownership](research-worker.md).
+
+## Milestone 4C data ports
+
+Worker is now `Worker[PlanT, ResultT]`: Research uses TaskPlan/ResearchResult; Data uses
+DataPlan/DataResult. DataJournal owns immutable data plans, atomic semantic dispatch claims,
+responses and final results. SQLite implements it using existing snapshot mechanisms.
+DataWorker processes supplied source snapshots; no speculative collection API is introduced.
+LLMProvider remains unchanged. See [data contracts and constraints](data-worker.md).

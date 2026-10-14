@@ -22,3 +22,5 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0009: Structured budgeted LLM adapters](0009-structured-budgeted-llm.md)
 
 - [0010: ResearchWorker evidence and recovery](0010-research-worker.md)
+
+- [0011: Deterministic DataWorker](0011-data-worker.md)

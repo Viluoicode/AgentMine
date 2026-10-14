@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 from agentmine.application.contracts import (
     ai,
+    data,
     opportunities,
     records,
     research,
@@ -38,6 +39,7 @@ class SnapshotCodec:
     def __init__(self) -> None:
         modules = (
             ai,
+            data,
             opportunities,
             records,
             research,

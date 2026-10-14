@@ -132,3 +132,11 @@ checkpoints prevent blind redispatch and permit recovery after recording failure
 Existing ExecuteTask/lifecycle wiring is unchanged. No external research API or dependency
 is introduced. See [ResearchWorker](research-worker.md) and
 [ADR 0010](adr/0010-research-worker.md).
+
+## Milestone 4C: DataWorker
+
+Implemented bounded deterministic CSV/JSON processing with explicit schema/constraints,
+lookup enrichment, per-record provenance and validation reports. Optional semantic fields
+use budgeted LLM assistance with strict row/column correlation. SQLite retains plans,
+responses/results and single-owner dispatch claims. No real collection API, new dependency
+or external submission. See [DataWorker](data-worker.md) and [ADR 0011](adr/0011-data-worker.md).

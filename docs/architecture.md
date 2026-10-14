@@ -125,3 +125,11 @@ using ResearchTool, LLMProvider, BudgetManager and ResearchJournal. SQLite imple
 checkpoint persistence; Domain and existing lifecycle workflows remain unchanged.
 Portable artifact rendering is deterministic Application behavior. No concrete external
 research integration is invented. See [ResearchWorker](research-worker.md).
+
+## Milestone 4C
+
+DataWorker keeps deterministic business transformations/validation in Application and
+uses existing budget/LLM ports only for explicitly semantic fields. The generic Worker
+protocol accommodates Research and Data plans/results. SQLiteDataJournal implements the
+new recovery port; Domain and existing lifecycle use cases remain unchanged. No dependency
+or real data-source integration is added. See [DataWorker](data-worker.md).

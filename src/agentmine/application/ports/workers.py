@@ -7,14 +7,13 @@ from agentmine.application.contracts.research import (
     ResearchClaim,
     ResearchObservation,
     ResearchRequest,
-    ResearchResult,
     TaskPlan,
 )
 from agentmine.domain.values import Reference
 
 
-class Worker(Protocol):
-    def execute(self, plan: TaskPlan) -> ResearchResult: ...
+class Worker[PlanT, ResultT](Protocol):
+    def execute(self, plan: PlanT) -> ResultT: ...
 
 
 class ResearchTool(Protocol):

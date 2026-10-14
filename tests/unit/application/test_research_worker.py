@@ -15,6 +15,7 @@ from agentmine.application.contracts.research import (
     ResearchClaim,
     ResearchObservation,
     ResearchRequest,
+    ResearchResult,
     ResearchStep,
     ResearchWarning,
     SourceEvidence,
@@ -214,7 +215,7 @@ def world() -> ResearchWorld:
 
 
 def test_worker_port_provenance_artifacts_and_costs(world: ResearchWorld) -> None:
-    worker: Worker = world.worker
+    worker: Worker[TaskPlan, ResearchResult] = world.worker
     result = worker.execute(world.plan)
     artifacts = {item.name: item for item in result.artifacts}
     assert set(artifacts) == {"report.md", "sources.json", "findings.json"}

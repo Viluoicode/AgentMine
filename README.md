@@ -148,3 +148,8 @@ Milestone 4B adds [ResearchWorker](docs/research-worker.md): validated Research 
 approved-tool evidence collection, source provenance, separate facts/analysis/uncertainties,
 portable report/source/findings artifacts and durable recovery checkpoints. Tools and LLMs
 remain injected; no live search integration, submission or new dependency is introduced.
+
+Milestone 4C adds [DataWorker](docs/data-worker.md): deterministic CSV/JSON collection,
+extraction, categorization, normalization, validation and lookup enrichment. AI is optional
+and limited to explicitly designated semantic fields. Outputs preserve row/field provenance;
+SQLite checkpoints support cost accounting and recovery. No new dependency or submission.
