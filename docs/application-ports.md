@@ -160,3 +160,13 @@ Milestone 4A adds vendor-neutral BudgetManager coordination. QARequest defaults 
 rejecting AI QA until deterministic_insufficient is explicitly true. LLMProvider method
 signatures remain unchanged; planning assistance accompanies structured work drafts.
 See [LLM contracts and setup](llm-infrastructure.md).
+
+## Milestone 4B worker ports
+
+Application owns `Worker.execute(TaskPlan)`, `ResearchTool.collect(ResearchRequest)` and
+`ResearchJournal` in `ports/workers.py`. Worker coordinates existing budgets and injected
+LLMProvider; tools supply observed text/provenance/cost, never lifecycle transitions.
+ResearchJournal owns immutable plans/results and atomic dispatch claims. A missing result
+after a claim requires reconciliation. SQLite implements this port using existing snapshots.
+BudgetManager accepts an explicit cost category, defaulting to AI for existing callers.
+See [research contracts, artifact shapes and ownership](research-worker.md).

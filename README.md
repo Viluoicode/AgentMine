@@ -143,3 +143,8 @@ No live Bedrock invocation or automatic startup integration is enabled.
 
 AWS Lambda and DynamoDB remain future infrastructure choices. See [milestones](docs/milestones.md) and
 [ADR directory](docs/adr/README.md).
+
+Milestone 4B adds [ResearchWorker](docs/research-worker.md): validated Research plans,
+approved-tool evidence collection, source provenance, separate facts/analysis/uncertainties,
+portable report/source/findings artifacts and durable recovery checkpoints. Tools and LLMs
+remain injected; no live search integration, submission or new dependency is introduced.

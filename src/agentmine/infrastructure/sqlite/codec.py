@@ -9,7 +9,14 @@ from types import UnionType
 from typing import Any, TypeVar, get_args, get_origin, get_type_hints
 from zoneinfo import ZoneInfo
 
-from agentmine.application.contracts import ai, opportunities, records, submission, workflow
+from agentmine.application.contracts import (
+    ai,
+    opportunities,
+    records,
+    research,
+    submission,
+    workflow,
+)
 from agentmine.application.errors import PortError, PortErrorCode
 from agentmine.domain import (
     budget,
@@ -33,6 +40,7 @@ class SnapshotCodec:
             ai,
             opportunities,
             records,
+            research,
             submission,
             workflow,
             budget,

@@ -123,3 +123,12 @@ See [local persistence](local-persistence.md).
 Milestone 4A: implemented opt-in Bedrock/Mock LLM providers, strict local schemas,
 budget authorization and usage accounting. No live invocation. See
 [LLM infrastructure](llm-infrastructure.md) and [ADR 0009](adr/0009-structured-budgeted-llm.md).
+
+## Milestone 4B: ResearchWorker
+
+Implemented an explicitly invoked application Worker with validated TaskPlan, approved
+research-tool targets, TOOL/AI budget accounting and evidence-backed artifacts. SQLite
+checkpoints prevent blind redispatch and permit recovery after recording failures.
+Existing ExecuteTask/lifecycle wiring is unchanged. No external research API or dependency
+is introduced. See [ResearchWorker](research-worker.md) and
+[ADR 0010](adr/0010-research-worker.md).

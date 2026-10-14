@@ -117,3 +117,11 @@ diagnostics remain infrastructure-owned subclasses of Application PortError.
 Bootstrap provides an explicitly invoked read-only smoke command; normal startup
 does not load credentials or instantiate marketplace adapters. Domain/Application
 are unchanged. See [Superteam source](superteam-source.md) for limits and validation.
+
+## Milestone 4B
+
+ResearchWorker implements the new application-owned Worker protocol in Application,
+using ResearchTool, LLMProvider, BudgetManager and ResearchJournal. SQLite implements
+checkpoint persistence; Domain and existing lifecycle workflows remain unchanged.
+Portable artifact rendering is deterministic Application behavior. No concrete external
+research integration is invented. See [ResearchWorker](research-worker.md).
