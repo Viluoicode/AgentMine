@@ -81,8 +81,11 @@ class QARequest:
     content: ReferencedText
     criteria: str
     authorization: BudgetAuthorization
+    deterministic_insufficient: bool = False
 
     def __post_init__(self) -> None:
+        if type(self.deterministic_insufficient) is not bool:
+            raise DomainError(ErrorCode.INVALID_VALUE, "qa", "Explicit QA fallback flag required")
         _validate_authorization(
             self.authorization,
             OperationType.QA,

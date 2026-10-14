@@ -12,6 +12,7 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["mypy", "pytest", "ruff"]
+bedrock = ["boto3>=1.35,<2"]
 
 [project.scripts]
 agentmine = "agentmine.bootstrap.main:main"
