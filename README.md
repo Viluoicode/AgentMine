@@ -134,5 +134,12 @@ been run against production. See [adapter setup, offline tests and smoke instruc
 All default pytest tests block network connections. Currency/prize, full pagination
 and slug-rename migration limitations remain explicit; Domain/Application are unchanged.
 
-AWS Lambda, DynamoDB and Bedrock are future infrastructure choices. See [milestones](docs/milestones.md) and
+Milestone 4A adds opt-in Bedrock and offline Mock LLM providers, strict structured
+output validation, persisted budget authorization and usage accounting. Planning
+assistance is part of structured Research/Data drafts; AI QA requires explicit
+deterministic-QA insufficiency. See [LLM setup and limitations](docs/llm-infrastructure.md).
+The optional `bedrock` extra supplies boto3; base installation remains dependency-free.
+No live Bedrock invocation or automatic startup integration is enabled.
+
+AWS Lambda and DynamoDB remain future infrastructure choices. See [milestones](docs/milestones.md) and
 [ADR directory](docs/adr/README.md).

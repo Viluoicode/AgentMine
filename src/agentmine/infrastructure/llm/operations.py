@@ -83,7 +83,10 @@ def prepare(request: Request, safety: ContentSafety) -> PreparedCall:
             "source": "listing",
         }
         sources = {"listing": request.opportunity.reference}
-        schema = '{"expected_net_value":"decimal string","rationale":"nonempty string","evidence":["listing"]}'
+        schema = (
+            '{"expected_net_value":"decimal string","rationale":"nonempty string",'
+            '"evidence":["listing"]}'
+        )
     elif isinstance(request, WorkRequest):
         task = request.execution.task
         if task.task_type not in (TaskType.RESEARCH, TaskType.DATA_PROCESSING):
@@ -97,9 +100,9 @@ def prepare(request: Request, safety: ContentSafety) -> PreparedCall:
             inputs.append({"source": alias, "text": item.text})
         data = {"description": task.description, "inputs": inputs}
         schema = (
-            '{"plan":["nonempty step"],"content":"nonempty research report","evidence":["source-0"]}'
+            '{"plan":["step"],"content":"research report","evidence":["source-0"]}'
             if task.task_type == TaskType.RESEARCH
-            else '{"plan":["nonempty step"],"rows":[{"field":"string or null"}],"evidence":["source-0"]}'
+            else '{"plan":["step"],"rows":[{"field":"str or null"}],"evidence":["source-0"]}'
         )
     else:
         if not request.deterministic_insufficient:

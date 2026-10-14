@@ -645,3 +645,22 @@ def test_evaluation_record_cannot_disagree_with_calculated_assessment(world: Wor
         replace(record, score=Decimal("20"))
     with pytest.raises(DomainError):
         replace(record, expected_value=replace(record.expected_value, amount=usd("10")))
+
+
+def test_mock_provider_runs_existing_execution_use_case(world: World) -> None:
+    from agentmine.infrastructure.llm.mock import MockLLMProvider
+
+    plan(world)
+    use_case = ExecuteTask(
+        world.opportunities,
+        world.executions,
+        world.ledger,
+        MockLLMProvider(),
+        world.source,
+        world.clock,
+    )
+    result = use_case.execute(work_request(world))
+    assert result.opportunity.state == OpportunityState.QA_PENDING
+    assert len(world.ledger.snapshots[Reference("ledger")].value.records) == 1
+    assert world.ledger.snapshots[Reference("ledger")].value.records[0].cost.amount == usd("0")
+    assert use_case.execute(work_request(world)).opportunity == result.opportunity

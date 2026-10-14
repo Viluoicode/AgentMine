@@ -18,3 +18,5 @@ Recorded: [ADR 0006: Economic scoring policy](0006-economic-scoring-policy.md).
 Recorded: [ADR 0007: Local SQLite persistence](0007-local-sqlite-persistence.md).
 
 Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-validation.md).
+
+- [0009: Structured budgeted LLM adapters](0009-structured-budgeted-llm.md)

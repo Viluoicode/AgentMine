@@ -155,3 +155,8 @@ source and Protocol declarations are unchanged. Real-file integration tests vali
 snapshot rehydration, conditional commits, budget/audit atomicity, intent ownership and
 idempotency. Additional operational queries are local adapter methods pending future
 application-owned read ports. See [local persistence](local-persistence.md).
+
+Milestone 4A adds vendor-neutral BudgetManager coordination. QARequest defaults to
+rejecting AI QA until deterministic_insufficient is explicitly true. LLMProvider method
+signatures remain unchanged; planning assistance accompanies structured work drafts.
+See [LLM contracts and setup](llm-infrastructure.md).

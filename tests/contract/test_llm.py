@@ -283,3 +283,52 @@ def test_evaluation_and_qa(setup: tuple[BedrockLLMProvider, Client, WorkRequest]
         .review_deliverable(replace(qa, deterministic_insufficient=True))
         .result.findings
     )
+
+
+def test_scout_change_blocks_paid_call(
+    setup: tuple[BedrockLLMProvider, Client, WorkRequest],
+) -> None:
+    provider, client, request = setup
+    ledger = provider.budget.ledger
+    assert isinstance(ledger, FakeLedger)
+    snapshot = ledger.snapshots[Reference("ledger")]
+    ledger.snapshots[Reference("ledger")] = Versioned(
+        replace(snapshot.value, requested_mode=OperatingMode.SCOUT_ONLY), snapshot.revision + 1
+    )
+    with pytest.raises(PortError):
+        provider.perform_work(request)
+    assert not client.calls
+
+
+def test_actual_over_estimate_is_recorded(
+    setup: tuple[BedrockLLMProvider, Client, WorkRequest],
+) -> None:
+    provider, client, request = setup
+    assert isinstance(client.response, dict)
+    client.response["usage"] = {"inputTokens": 2000, "outputTokens": 20, "totalTokens": 2020}
+    result = provider.perform_work(request)
+    assert result.actual_cost is not None
+    assert result.actual_cost.cost.amount == usd("2.04")
+    assert result.actual_cost.estimated_cost == usd("1")
+
+
+@pytest.mark.parametrize("reason", ["max_tokens", "tool_use", "guardrail_intervened"])
+def test_incomplete_output_rejected(
+    reason: str, setup: tuple[BedrockLLMProvider, Client, WorkRequest]
+) -> None:
+    provider, client, request = setup
+    assert isinstance(client.response, dict)
+    client.response["stopReason"] = reason
+    with pytest.raises(PortError):
+        provider.perform_work(request)
+
+
+def test_commit_failure_prevents_dispatch(
+    setup: tuple[BedrockLLMProvider, Client, WorkRequest],
+) -> None:
+    provider, client, request = setup
+    assert isinstance(provider.budget.ledger, FakeLedger)
+    provider.budget.ledger.fail_commit = True
+    with pytest.raises(PortError):
+        provider.perform_work(request)
+    assert not client.calls

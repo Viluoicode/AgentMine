@@ -119,3 +119,7 @@ revenue. Integration tests cover real files, reopen/retry, concurrency, atomic r
 financial boundaries and the same Application workflow with either repository backend.
 Domain/Application are unchanged. No third-party dependency or external integration is added.
 See [local persistence](local-persistence.md).
+
+Milestone 4A: implemented opt-in Bedrock/Mock LLM providers, strict local schemas,
+budget authorization and usage accounting. No live invocation. See
+[LLM infrastructure](llm-infrastructure.md) and [ADR 0009](adr/0009-structured-budgeted-llm.md).
