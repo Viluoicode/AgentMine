@@ -147,3 +147,11 @@ EvaluationRepository ownership, immutable-identity conflicts and chronological
 history requirements remain unchanged. Future adapters must preserve these fields.
 LLMProvider evaluation advice remains advisory and is unused by the deterministic
 EvaluateOpportunity/ScoreOpportunity path. No production adapter is introduced.
+
+## Milestone 3A local implementation
+
+All existing repository protocols now have concrete SQLite adapters. Domain/Application
+source and Protocol declarations are unchanged. Real-file integration tests validate
+snapshot rehydration, conditional commits, budget/audit atomicity, intent ownership and
+idempotency. Additional operational queries are local adapter methods pending future
+application-owned read ports. See [local persistence](local-persistence.md).

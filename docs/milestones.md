@@ -83,3 +83,13 @@ subjective predictions, normalized signals, 0?100 weighted scoring, explainable
 recommendations and stored components/policy snapshots. Numeric input tests and
 fake-only application persistence/retry tests verify forecasts never create revenue.
 See [policy and limitations](economic-scoring.md). No dependency or infrastructure added.
+
+## Milestone 3A: Local Persistence Adapter
+
+All five repository ports have SQLite implementations for opportunities, evaluations,
+executions, submissions/outcomes and budget/cost state. Local queries support lifecycle,
+source, scores, waiting/review/unpaid work, execution history, actual costs and verified
+revenue. Integration tests cover real files, reopen/retry, concurrency, atomic rollback,
+financial boundaries and the same Application workflow with either repository backend.
+Domain/Application are unchanged. No third-party dependency or external integration is added.
+See [local persistence](local-persistence.md).

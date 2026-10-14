@@ -87,3 +87,12 @@ replaces caller-selected values/scores with calculated assessments and retains t
 complete policy/components in aggregates and EvaluationRecord through existing ports.
 Dependency direction is unchanged. No infrastructure or runtime dependency is added.
 See [economic scoring](economic-scoring.md) and [ADR 0006](adr/0006-economic-scoring-policy.md).
+
+## Milestone 3A
+
+SQLite adapters implement the existing repository ports. Bootstrap explicitly composes
+them from a supplied file path. Domain and Application source are unchanged. Complete
+versioned snapshots, conditional writes, atomic budget/audit persistence and submission
+claims now have local implementations. Additional local reporting methods remain on
+adapters until future Application use cases need read ports. See [local persistence](local-persistence.md)
+and [ADR 0007](adr/0007-local-sqlite-persistence.md).

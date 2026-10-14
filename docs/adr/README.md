@@ -14,3 +14,5 @@ AI/QA policy, integration contracts, runtime and configuration. Milestone 1A doe
 not settle those policies.
 
 Recorded: [ADR 0006: Economic scoring policy](0006-economic-scoring-policy.md).
+
+Recorded: [ADR 0007: Local SQLite persistence](0007-local-sqlite-persistence.md).

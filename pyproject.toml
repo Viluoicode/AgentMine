@@ -24,6 +24,7 @@ agentmine = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["tests/unit/application"]
 addopts = "--strict-config --strict-markers"
 
 [tool.ruff]

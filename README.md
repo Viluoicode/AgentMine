@@ -67,8 +67,8 @@ no work is executed and no adapters are instantiated.
 On other systems, replace the interpreter path with `.venv/bin/python`.
 
 Tests are organized under `tests/unit`, `tests/integration`, `tests/contract`, and
-`tests/e2e`. Application contract validation lives in unit tests; integration and
-adapter contract areas remain placeholders until concrete adapters exist.
+`tests/e2e`. Application contract validation lives in unit tests; Milestone 3A integration tests exercise real local SQLite adapters. External
+adapter contract tests remain deferred.
 
 ## Current milestone status
 
@@ -77,14 +77,14 @@ bootstrap, test structure, static-check configuration, and documentation.
 Milestone 1B adds immutable core domain models, guarded lifecycle transitions,
 explicit reward stages, local budget accounting, operating modes, and evidence
 binding for QA, approval, submission and payment. See [domain model](docs/domain-model.md).
-Execution engines, operational logging, external payment verification,
-concurrent budget reservations and external adapters are not implemented.
+Execution engines, complete operational logging, external payment verification
+and provider/marketplace adapters remain future work.
 
 Milestone 1C adds daily/monthly AI authorization, task limits, spending-approval
 thresholds, separate estimate/actual accounting, derived modes and guarded
 WAITING_FOR_BUDGET resumption. AI exhaustion preserves free operations. See
-[budget domain](docs/budget-domain.md). Reservations exist within domain snapshots;
-atomic persistence across concurrent callers remains future work.
+[budget domain](docs/budget-domain.md). Reservations exist within domain snapshots; Milestone 3A adds conditional atomic
+SQLite persistence across local callers.
 
 Milestone 2A adds ten application-owned ports, typed request/response contracts,
 structured boundary errors and Domain/Application import guards. No adapter or
@@ -105,10 +105,16 @@ Unknown/human-review decisions remain pending and cannot authorize work. See
 
 
 Milestone 2D adds deterministic expected-net-value calculations and an explainable
-0?100 opportunity score with REJECT/WATCH/RECOMMEND/ATTEMPT recommendations. Domain
+0-100 opportunity score with REJECT/WATCH/RECOMMEND/ATTEMPT recommendations. Domain
 retains subjective predictions, cost estimates, signal components and policy snapshots;
 Application calculates and persists assessments through existing ports. No forecasts
 create verified revenue. See [economic scoring policy](docs/economic-scoring.md).
+
+Milestone 3A adds local SQLite implementations of all repository ports, complete
+snapshot rehydration, atomic budget/audit commits, submission intent claiming and
+operational/financial queries. Domain/Application remain unchanged. The standard-library
+sqlite3 adapter needs no new dependency. See [local persistence](docs/local-persistence.md)
+for explicit bootstrap setup, access patterns, guarantees and limits.
 
 AWS Lambda, DynamoDB and Bedrock are future infrastructure choices. No AWS or
 marketplace integration is included. See [milestones](docs/milestones.md) and
