@@ -1,0 +1,17 @@
+[
+  {
+    "id": "fixture-project-1",
+    "slug": "fixture-research-project",
+    "title": "Synthetic research brief",
+    "type": "project",
+    "compensationType": "fixed",
+    "rewardAmount": 12.34567890123456789,
+    "token": "SOL",
+    "deadline": "2026-11-01T12:00:00.000Z",
+    "status": "OPEN",
+    "agentAccess": "AGENT_ALLOWED",
+    "isWinnersAnnounced": false,
+    "sponsor": {"name": "Synthetic sponsor", "slug": "synthetic", "isVerified": true},
+    "_count": {"Submission": 3, "Comments": 2}
+  }
+]

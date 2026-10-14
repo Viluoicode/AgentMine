@@ -1,5 +1,19 @@
 # Milestones
 
+## Milestone 3B: Marketplace Integration Validation
+
+Research and contract matrix cover Superteam Earn, Algora and Opire, in that order.
+Official documentation and public source support a limited Superteam GET adapter;
+live authenticated compatibility remains untested. Raw successful responses are
+archived before parsing. Fixed project offers map only when their reward fits existing
+Money semantics; other offers retain explicit normalization issues. Full pagination,
+submission/outcome/payment automation and unsupported source APIs remain disabled.
+Algora/Opire have documented no-I/O skeletons. See [contracts](marketplace-contracts.md).
+
+Validation: synthetic source-backed fixtures, strict normalization, raw retention,
+safe transport errors/routes, existing application-port usage and full regression checks.
+No domain/application edit, dependency installation or paid API call is required.
+
 ## Milestone 1A: Project Foundation
 
 Scope: Python 3.12+ project, Clean Architecture packages, dependency management,

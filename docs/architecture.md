@@ -96,3 +96,14 @@ versioned snapshots, conditional writes, atomic budget/audit persistence and sub
 claims now have local implementations. Additional local reporting methods remain on
 adapters until future Application use cases need read ports. See [local persistence](local-persistence.md)
 and [ADR 0007](adr/0007-local-sqlite-persistence.md).
+
+## Milestone 3B
+
+Marketplace adapters depend on existing Application ports and Domain values. Inner
+layers are unchanged. Superteam's verified read routes translate source facts into
+observations; unrepresentable offers stay in a raw infrastructure archive with explicit
+normalization issues. Algora/Opire source skeletons fail UNSUPPORTED without I/O.
+No automatic task classification, business scoring, submission or payment behavior
+moves into infrastructure. Explicit construction is required; bootstrap is unchanged.
+See [contract matrix](marketplace-contracts.md) and
+[ADR 0008](adr/0008-marketplace-contract-validation.md).

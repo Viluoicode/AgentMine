@@ -67,8 +67,9 @@ no work is executed and no adapters are instantiated.
 On other systems, replace the interpreter path with `.venv/bin/python`.
 
 Tests are organized under `tests/unit`, `tests/integration`, `tests/contract`, and
-`tests/e2e`. Application contract validation lives in unit tests; Milestone 3A integration tests exercise real local SQLite adapters. External
-adapter contract tests remain deferred.
+`tests/e2e`. Application contract validation lives in unit tests; Milestone 3A integration
+tests exercise real local SQLite adapters. Milestone 3B contract tests use synthetic
+Superteam fixtures, fake HTTP and local raw archives without network or credentials.
 
 ## Current milestone status
 
@@ -116,6 +117,13 @@ operational/financial queries. Domain/Application remain unchanged. The standard
 sqlite3 adapter needs no new dependency. See [local persistence](docs/local-persistence.md)
 for explicit bootstrap setup, access patterns, guarantees and limits.
 
-AWS Lambda, DynamoDB and Bedrock are future infrastructure choices. No AWS or
-marketplace integration is included. See [milestones](docs/milestones.md) and
+Milestone 3B records the [connector contract matrix](docs/marketplace-contracts.md)
+for Superteam Earn, Algora and Opire. Superteam has a limited read-only discovery/detail
+adapter with exact raw capture and conservative normalization. USDC, prize pools and
+negotiated rewards remain quarantined; full pagination is explicitly unsupported.
+Algora/Opire are disabled skeletons pending verified contracts/access permission.
+No adapter is activated at startup; no authenticated marketplace smoke test, automated
+submission or payment verifier is included. No runtime dependencies were added.
+
+AWS Lambda, DynamoDB and Bedrock are future infrastructure choices. See [milestones](docs/milestones.md) and
 [ADR directory](docs/adr/README.md).

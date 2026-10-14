@@ -1,0 +1,16 @@
+{
+  "kind": "synthetic_contract_examples_not_recorded_api_responses",
+  "researched_on": "2026-10-14",
+  "document_version": "0.5.1",
+  "documentation": "https://superteam.fun/skill.md",
+  "source_repository": "https://github.com/SuperteamDAO/earn",
+  "source_revision": "f3bf49436d10f89e82131ecb04ffb401114afab5",
+  "source_paths": [
+    "src/pages/api/agents/listings/live.ts",
+    "src/pages/api/agents/listings/details/[slug].ts",
+    "src/features/listings/constants/schema.ts",
+    "src/features/listings/constants/publicListingDetails.ts",
+    "prisma/schema.prisma"
+  ],
+  "limitations": "Selected fields of source-backed schemas, with fictional IDs, text and amounts. No authenticated API sample or real listing. Nullable skills/eligibility/rewards deliberately avoid inventing JSON substructures. Tests inject future/unknown fields as deliberate schema drift."
+}
