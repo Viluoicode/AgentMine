@@ -1,5 +1,17 @@
 # Milestones
 
+## Milestone 3C: Superteam OpportunitySource Adapter
+
+Scope: harden the existing verified GET adapter, collapse duplicate external IDs,
+preserve raw metadata and original ingestion provenance, quarantine missing/forbidden
+agent participation, expose structured read failures, and provide a gated live smoke CLI.
+No new endpoint, submission mechanism, currency conversion or pagination contract is assumed.
+
+Validation: saved synthetic fixtures, normalization/failure tests, duplicate ingestion
+through reopened SQLite, offline smoke-command tests and a suite-wide network block.
+Production smoke is optional and was not executed. Domain/Application and runtime
+dependencies remain unchanged. See [setup and limitations](superteam-source.md).
+
 ## Milestone 3B: Marketplace Integration Validation
 
 Research and contract matrix cover Superteam Earn, Algora and Opire, in that order.

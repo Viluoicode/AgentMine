@@ -107,3 +107,13 @@ No automatic task classification, business scoring, submission or payment behavi
 moves into infrastructure. Explicit construction is required; bootstrap is unchanged.
 See [contract matrix](marketplace-contracts.md) and
 [ADR 0008](adr/0008-marketplace-contract-validation.md).
+
+## Milestone 3C
+
+Superteam discovery reuses the same verified routes and business port. Compatible
+duplicate rows are collapsed by external ID; ambiguous identities fail explicitly.
+Missing/changed agent participation cannot silently authorize work. Source error
+diagnostics remain infrastructure-owned subclasses of Application PortError.
+Bootstrap provides an explicitly invoked read-only smoke command; normal startup
+does not load credentials or instantiate marketplace adapters. Domain/Application
+are unchanged. See [Superteam source](superteam-source.md) for limits and validation.

@@ -22,3 +22,13 @@ Review [the contract matrix](../../docs/marketplace-contracts.md) before updatin
 For future real captures, remove credentials/PII and explicitly record provenance;
 do not represent a synthetic example as a recorded API response. Production activation
 requires a separate authenticated read-only smoke test and review of remaining gaps.
+
+Milestone 3C extends these tests with duplicate rows, re-ingestion after SQLite reopen,
+preserved lifecycle/provenance, ambiguous identity conflicts, revoked/unknown agent
+participation and machine-readable HTTP failures. Additional saved fixtures deliberately
+exercise duplicate/missing fields without claiming those are production captures.
+`tests/unit/test_superteam_smoke.py` tests the optional CLI with offline transports.
+The root `tests/conftest.py` blocks socket connections throughout pytest; a domain test
+package marker keeps its conftest distinct for strict mypy checking.
+See [the explicit live probe instructions](../../docs/superteam-source.md); no default
+test reads a production key or calls a live API.

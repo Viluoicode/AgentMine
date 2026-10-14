@@ -5,6 +5,10 @@ documentation/source validation, **not an authenticated production smoke test**.
 No account was registered, credential obtained, submission posted or payment made.
 Tests use synthetic fixtures, never a marketplace or paid provider.
 
+Milestone 3C hardens this same verified read contract; see
+[Superteam adapter and optional smoke probe](superteam-source.md). It adds no new
+external endpoint, pagination assumption or reward conversion.
+
 ## Evidence and confidence
 
 - **S1 — documented:** [Superteam Agent API](https://superteam.fun/skill.md), live
@@ -66,8 +70,10 @@ Inspection can be repeated offline from archived bytes. The normalizer is versio
 in source/fixtures; reports are not a separate durable domain entity.
 
 - Stable identity: `superteam:<id>`; source reference: `superteam:<slug>`.
-- Detail identity and slug must agree with discovery/refresh input. Invalid shape,
-  duplicate identities, malformed timestamps/numbers fail explicitly.
+- Detail identity and slug must agree with discovery/refresh input. In 3C, repeated
+  IDs with the same slug are fetched once; contradictory ID/slug mappings fail
+  explicitly. Invalid shapes/timestamps/numbers still fail. Re-ingestion preserves
+  the existing Opportunity and original provenance; slug changes require resolution.
 - Missing or null deadline stays UNKNOWN: null database value does not establish
   that work has no deadline. Unknown status stays unknown. Winner-announced listings
   are not open. Closed status does not become ACCEPTED/REJECTED/PAID.
@@ -82,6 +88,10 @@ in source/fixtures; reports are not a separate durable domain entity.
   UNKNOWN. `region=Global` does not prove no geographic restrictions elsewhere in prose.
   A project or an AI-allowed listing is not automatically Research/Data Processing.
   Text is untrusted content, never instructions, and no linked resources are followed.
+- In 3C, missing/new AI flags remain UNKNOWN and quarantine the observation;
+  HUMAN_ONLY is also quarantined. Refresh refuses unconfirmed participation rather
+  than allowing an earlier eligibility result to authorize work. Missing title,
+  token or compensation data now carries explicit UNKNOWN issue codes.
 
 Pagination is deliberately incomplete: maximum 50 raw listings per call, one detail
 read per valid listing. A full raw window returns the opaque marker

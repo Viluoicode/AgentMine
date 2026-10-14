@@ -8,7 +8,11 @@ import pytest
 
 from agentmine.application.errors import PortError, PortErrorCode
 from agentmine.infrastructure.marketplaces.raw_archive import RawArchive, RawCapture
-from agentmine.infrastructure.marketplaces.superteam_http import SuperteamHTTP
+from agentmine.infrastructure.marketplaces.superteam_http import (
+    ReadFailure,
+    SuperteamHTTP,
+    SuperteamReadError,
+)
 
 
 def test_transport_fixed_host_get_and_secret_not_in_repr() -> None:
@@ -40,6 +44,15 @@ def test_http_failures_no_retry_redirect_or_body_leak(status: int) -> None:
         with pytest.raises(PortError) as error:
             transport.get("/api/agents/listings/details/slug")
         assert error.value.code == PortErrorCode.UNAVAILABLE
+        assert isinstance(error.value, SuperteamReadError)
+        assert error.value.http_status == status
+        expected_reason = {
+            401: ReadFailure.AUTHENTICATION,
+            403: ReadFailure.ACCESS_DENIED,
+            404: ReadFailure.NOT_FOUND,
+            429: ReadFailure.RATE_LIMITED,
+        }.get(status, ReadFailure.REDIRECT if 300 <= status < 400 else ReadFailure.HTTP)
+        assert error.value.reason == expected_reason
         assert "sk_test_only" not in str(error.value)
         assert str(status) in str(error.value)
         response.read.assert_not_called()
@@ -126,3 +139,18 @@ def test_archive_error_is_structured(tmp_path: Path) -> None:
     with pytest.raises(PortError) as error:
         archive.save(capture)
     assert error.value.code == PortErrorCode.UNAVAILABLE
+
+
+def test_connection_initialization_failure_is_sanitized() -> None:
+    with patch("http.client.HTTPSConnection", side_effect=OSError("sk_private detail")):
+        with pytest.raises(SuperteamReadError) as error:
+            SuperteamHTTP("sk_test_only").get("/api/agents/listings/live?take=1")
+        assert error.value.reason == ReadFailure.NETWORK
+        assert "sk_private" not in str(error.value)
+        assert error.value.__suppress_context__
+
+
+@pytest.mark.parametrize("timeout", [0, -1, float("nan"), float("inf")])
+def test_invalid_timeouts_fail_before_network(timeout: float) -> None:
+    with pytest.raises(ValueError):
+        SuperteamHTTP("sk_test_only", timeout_seconds=timeout)

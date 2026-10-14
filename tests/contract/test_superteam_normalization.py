@@ -64,7 +64,9 @@ def test_ai_flag_without_invented_eligibility(
 ) -> None:
     data = detail()
     data["agentAccess"] = access
-    assert normalize_detail(data, NOW, RAW).facts.ai_policy == expected
+    result = normalize_detail(data, NOW, RAW)
+    assert result.facts.ai_policy == expected
+    assert (result.observation is not None) == (expected == AIParticipationPolicy.ALLOWED)
 
 
 @pytest.mark.parametrize(
@@ -75,12 +77,14 @@ def test_ai_flag_without_invented_eligibility(
         ({"type": "new-type"}, NormalizationIssue.REWARD_MODEL_UNSUPPORTED),
         ({"compensationType": "range"}, NormalizationIssue.REWARD_MODEL_UNSUPPORTED),
         ({"compensationType": "variable"}, NormalizationIssue.REWARD_MODEL_UNSUPPORTED),
-        ({"compensationType": None}, NormalizationIssue.REWARD_MODEL_UNSUPPORTED),
+        ({"compensationType": None}, NormalizationIssue.REWARD_MODEL_UNKNOWN),
         ({"token": "USDC"}, NormalizationIssue.REWARD_ASSET_UNSUPPORTED),
-        ({"token": None}, NormalizationIssue.REWARD_ASSET_UNSUPPORTED),
+        ({"token": None}, NormalizationIssue.REWARD_ASSET_UNKNOWN),
         ({"token": "sol"}, NormalizationIssue.REWARD_ASSET_UNSUPPORTED),
         ({"rewardAmount": None}, NormalizationIssue.REWARD_AMOUNT_UNKNOWN),
         ({"description": None, "requirements": ""}, NormalizationIssue.REQUIREMENTS_UNKNOWN),
+        ({"title": None}, NormalizationIssue.TITLE_UNKNOWN),
+        ({"title": " "}, NormalizationIssue.TITLE_UNKNOWN),
     ],
 )
 def test_unrepresentable_offers_are_quarantined(
@@ -141,7 +145,7 @@ def test_announced_is_closed_and_unknown_deadline_is_not_no_deadline() -> None:
         {"deadline": False},
         {"id": "../escape"},
         {"slug": "https://evil.example"},
-        {"title": " "},
+        {"title": False},
         {"isWinnersAnnounced": "false"},
         {"description": []},
     ],
@@ -168,4 +172,30 @@ def test_past_deadline_remains_past_and_text_is_not_executed() -> None:
 def test_invalid_json_and_duplicate_fields(body: bytes) -> None:
     with pytest.raises(PortError) as error:
         decode_json(body)
+    assert error.value.code == PortErrorCode.INVALID_RESPONSE
+
+
+def test_saved_missing_fields_fixture_never_becomes_invented_opportunity() -> None:
+    body = (Path(__file__).parent / "fixtures/superteam/detail_unknown.json").read_bytes()
+    result = normalize_detail(listing_object(decode_json(body)), NOW, RAW)
+    assert result.observation is None
+    assert result.facts.is_open is None
+    assert result.facts.deadline.kind == DeadlineKind.UNKNOWN
+    assert result.facts.ai_policy == AIParticipationPolicy.UNKNOWN
+    assert set(result.issues) == {
+        NormalizationIssue.TITLE_UNKNOWN,
+        NormalizationIssue.AI_POLICY_UNKNOWN,
+        NormalizationIssue.REQUIREMENTS_UNKNOWN,
+        NormalizationIssue.REWARD_MODEL_UNKNOWN,
+        NormalizationIssue.REWARD_AMOUNT_UNKNOWN,
+        NormalizationIssue.REWARD_ASSET_UNKNOWN,
+    }
+
+
+@pytest.mark.parametrize("field", ["id", "slug"])
+def test_missing_identity_is_invalid_not_fabricated(field: str) -> None:
+    data = detail()
+    del data[field]
+    with pytest.raises(PortError) as error:
+        normalize_detail(data, NOW, RAW)
     assert error.value.code == PortErrorCode.INVALID_RESPONSE

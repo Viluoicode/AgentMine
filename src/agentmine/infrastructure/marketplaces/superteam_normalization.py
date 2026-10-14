@@ -25,9 +25,14 @@ type JSONObject = dict[str, object]
 
 
 class NormalizationIssue(StrEnum):
+    TITLE_UNKNOWN = "TITLE_UNKNOWN"
+    AI_POLICY_UNKNOWN = "AI_POLICY_UNKNOWN"
+    AI_PARTICIPATION_PROHIBITED = "AI_PARTICIPATION_PROHIBITED"
+    REWARD_MODEL_UNKNOWN = "REWARD_MODEL_UNKNOWN"
     REWARD_MODEL_UNSUPPORTED = "REWARD_MODEL_UNSUPPORTED"
     REWARD_AMOUNT_UNKNOWN = "REWARD_AMOUNT_UNKNOWN"
     REWARD_ASSET_UNSUPPORTED = "REWARD_ASSET_UNSUPPORTED"
+    REWARD_ASSET_UNKNOWN = "REWARD_ASSET_UNKNOWN"
     REQUIREMENTS_UNKNOWN = "REQUIREMENTS_UNKNOWN"
 
 
@@ -114,6 +119,15 @@ def availability(data: JSONObject) -> tuple[bool | None, Deadline]:
     return is_open, Deadline(DeadlineKind.AT, at.astimezone(UTC))
 
 
+def agent_policy(data: JSONObject) -> AIParticipationPolicy:
+    access = data.get("agentAccess")
+    if access in ("AGENT_ALLOWED", "AGENT_ONLY"):
+        return AIParticipationPolicy.ALLOWED
+    if access == "HUMAN_ONLY":
+        return AIParticipationPolicy.PROHIBITED
+    return AIParticipationPolicy.UNKNOWN
+
+
 def normalize_detail(
     data: JSONObject,
     observed_at: datetime,
@@ -124,17 +138,18 @@ def normalize_detail(
     reference = Reference(f"superteam:{item_id}")
     source = Reference(f"superteam:{slug}")
     title = data.get("title")
-    if not isinstance(title, str) or not title.strip():
+    if title is not None and not isinstance(title, str):
         raise invalid_response()
     is_open, deadline = availability(data)
-    access = data.get("agentAccess")
-    policy = AIParticipationPolicy.UNKNOWN
-    if access in ("AGENT_ALLOWED", "AGENT_ONLY"):
-        policy = AIParticipationPolicy.ALLOWED
-    elif access == "HUMAN_ONLY":
-        policy = AIParticipationPolicy.PROHIBITED
+    policy = agent_policy(data)
     facts = EligibilityFacts(reference, is_open, deadline, policy)
     issues: list[NormalizationIssue] = []
+    if title is None or not title.strip():
+        issues.append(NormalizationIssue.TITLE_UNKNOWN)
+    if policy == AIParticipationPolicy.UNKNOWN:
+        issues.append(NormalizationIssue.AI_POLICY_UNKNOWN)
+    elif policy == AIParticipationPolicy.PROHIBITED:
+        issues.append(NormalizationIssue.AI_PARTICIPATION_PROHIBITED)
     text: list[str] = []
     for name in ("description", "requirements"):
         value = data.get(name)
@@ -144,7 +159,9 @@ def normalize_detail(
             text.append(value)
     if not text:
         issues.append(NormalizationIssue.REQUIREMENTS_UNKNOWN)
-    if data.get("type") != "project" or data.get("compensationType") != "fixed":
+    if data.get("type") is None or data.get("compensationType") is None:
+        issues.append(NormalizationIssue.REWARD_MODEL_UNKNOWN)
+    elif data.get("type") != "project" or data.get("compensationType") != "fixed":
         issues.append(NormalizationIssue.REWARD_MODEL_UNSUPPORTED)
     amount = data.get("rewardAmount")
     if amount is None:
@@ -152,11 +169,14 @@ def normalize_detail(
     elif not isinstance(amount, Decimal) or not amount.is_finite() or amount < 0:
         raise invalid_response()
     token = data.get("token")
-    if not isinstance(token, str) or not re.fullmatch(r"[A-Z]{3}", token):
+    if token is None:
+        issues.append(NormalizationIssue.REWARD_ASSET_UNKNOWN)
+    elif not isinstance(token, str) or not re.fullmatch(r"[A-Z]{3}", token):
         issues.append(NormalizationIssue.REWARD_ASSET_UNSUPPORTED)
     observation = None
     if not issues:
         assert isinstance(amount, Decimal) and isinstance(token, str)
+        assert isinstance(title, str)
         opportunity = Opportunity(
             reference, title, Reward(Money(amount, token), evidence=raw_reference)
         )

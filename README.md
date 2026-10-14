@@ -125,5 +125,14 @@ Algora/Opire are disabled skeletons pending verified contracts/access permission
 No adapter is activated at startup; no authenticated marketplace smoke test, automated
 submission or payment verifier is included. No runtime dependencies were added.
 
+Milestone 3C hardens the Superteam adapter: duplicate source rows are fetched once,
+repeat SQLite ingestion preserves original provenance/lifecycle, missing facts remain
+UNKNOWN, agent access is checked again on refresh, and HTTP failures have safe machine
+reasons. An optional `python -m agentmine.bootstrap.superteam_smoke --live` probe reads
+only when explicitly invoked with an operator-provided environment key. It has not
+been run against production. See [adapter setup, offline tests and smoke instructions](docs/superteam-source.md).
+All default pytest tests block network connections. Currency/prize, full pagination
+and slug-rename migration limitations remain explicit; Domain/Application are unchanged.
+
 AWS Lambda, DynamoDB and Bedrock are future infrastructure choices. See [milestones](docs/milestones.md) and
 [ADR directory](docs/adr/README.md).

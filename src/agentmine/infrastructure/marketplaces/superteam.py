@@ -11,13 +11,14 @@ from agentmine.application.contracts.opportunities import (
 )
 from agentmine.application.errors import PortError, PortErrorCode
 from agentmine.application.ports.services import Clock
-from agentmine.domain.eligibility import DeadlineKind
+from agentmine.domain.eligibility import AIParticipationPolicy, DeadlineKind
 from agentmine.domain.values import Reference
 from agentmine.infrastructure.marketplaces.raw_archive import RawArchive, RawCapture
 from agentmine.infrastructure.marketplaces.superteam_http import SuperteamTransport
 from agentmine.infrastructure.marketplaces.superteam_normalization import (
     JSONObject,
     NormalizationResult,
+    agent_policy,
     availability,
     decode_json,
     identity,
@@ -32,6 +33,7 @@ class DiscoveryReport:
     batch: OpportunityBatch
     list_capture: Reference
     items: tuple[NormalizationResult, ...]
+    duplicate_count: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,13 +64,21 @@ class SuperteamOpportunitySource:
         value, capture = self._read(f"/api/agents/listings/live?take={take}")
         if not isinstance(value, list) or len(value) > take:
             raise invalid_response()
-        identities = [identity(listing_object(item)) for item in value]
-        if len({item[0] for item in identities}) != len(identities) or len(
-            {item[1] for item in identities}
-        ) != len(identities):
-            raise invalid_response()
+        identities: dict[str, str] = {}
+        slug_owners: dict[str, str] = {}
+        for item in value:
+            item_id, slug = identity(listing_object(item))
+            if (item_id in identities and identities[item_id] != slug) or (
+                slug in slug_owners and slug_owners[slug] != item_id
+            ):
+                raise PortError(
+                    PortErrorCode.CONFLICT, "discovery", "Ambiguous source identity mapping"
+                )
+            identities[item_id] = slug
+            slug_owners[slug] = item_id
+        duplicates = len(value) - len(identities)
         results = []
-        for item_id, slug in identities:
+        for item_id, slug in identities.items():
             detail, raw = self._detail(item_id, slug)
             results.append(normalize_detail(detail, raw.observed_at, raw.reference))
         batch = OpportunityBatch(
@@ -81,10 +91,11 @@ class SuperteamOpportunitySource:
                 "source": "superteam",
                 "observed_count": len(results),
                 "normalized_count": len(batch.observations),
+                "duplicate_count": duplicates,
                 "normalization_issues": [issue.value for item in results for issue in item.issues],
             },
         )
-        return DiscoveryReport(batch, capture.reference, tuple(results))
+        return DiscoveryReport(batch, capture.reference, tuple(results), duplicates)
 
     def discover(self, request: DiscoveryRequest) -> OpportunityBatch:
         return self.inspect(request).batch
@@ -98,6 +109,12 @@ class SuperteamOpportunitySource:
             raise PortError(PortErrorCode.UNSUPPORTED, "refresh", "Source reference mismatch")
         identity({"id": item_id, "slug": slug})
         detail, capture = self._detail(item_id, slug)
+        # The availability-only application port cannot express changed AI permission.
+        # Refuse a refresh rather than let an earlier eligibility decision authorize work.
+        if agent_policy(detail) != AIParticipationPolicy.ALLOWED:
+            raise PortError(
+                PortErrorCode.UNSUPPORTED, "refresh", "Agent participation is not confirmed"
+            )
         is_open, deadline = availability(detail)
         return OpportunityStatus(
             request.opportunity_reference,

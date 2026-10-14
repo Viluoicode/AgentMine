@@ -4,9 +4,43 @@ import http.client
 import math
 import re
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import Protocol
 
 from agentmine.application.errors import PortError, PortErrorCode
+
+
+class ReadFailure(StrEnum):
+    AUTHENTICATION = "authentication"
+    ACCESS_DENIED = "access_denied"
+    NOT_FOUND = "not_found"
+    RATE_LIMITED = "rate_limited"
+    REDIRECT = "redirect"
+    HTTP = "http"
+    NETWORK = "network"
+
+
+class SuperteamReadError(PortError):
+    """Safe infrastructure diagnostics; no response body, credentials or headers."""
+
+    def __init__(self, reason: ReadFailure, http_status: int | None = None) -> None:
+        self.reason = reason
+        self.http_status = http_status
+        super().__init__(
+            PortErrorCode.UNAVAILABLE,
+            "discovery",
+            f"Source read failed: {reason.value} (HTTP {http_status})",
+        )
+
+
+def _http_failure(status: int) -> SuperteamReadError:
+    reason = {
+        401: ReadFailure.AUTHENTICATION,
+        403: ReadFailure.ACCESS_DENIED,
+        404: ReadFailure.NOT_FOUND,
+        429: ReadFailure.RATE_LIMITED,
+    }.get(status, ReadFailure.REDIRECT if 300 <= status < 400 else ReadFailure.HTTP)
+    return SuperteamReadError(reason, status)
 
 
 class SuperteamTransport(Protocol):
@@ -36,8 +70,9 @@ class SuperteamHTTP:
             route,
         ):
             raise PortError(PortErrorCode.UNSUPPORTED, "discovery", "Unsupported read route")
-        connection = http.client.HTTPSConnection("superteam.fun", timeout=self.timeout_seconds)
+        connection: http.client.HTTPSConnection | None = None
         try:
+            connection = http.client.HTTPSConnection("superteam.fun", timeout=self.timeout_seconds)
             connection.request(
                 "GET",
                 route,
@@ -48,9 +83,7 @@ class SuperteamHTTP:
             )
             response = connection.getresponse()
             if response.status != 200:
-                raise PortError(
-                    PortErrorCode.UNAVAILABLE, "discovery", f"Source HTTP status {response.status}"
-                )
+                raise _http_failure(response.status)
             body = response.read(self.max_response_bytes + 1)
             if len(body) > self.max_response_bytes:
                 raise PortError(
@@ -58,6 +91,7 @@ class SuperteamHTTP:
                 )
             return body
         except (OSError, http.client.HTTPException):
-            raise PortError(PortErrorCode.UNAVAILABLE, "discovery", "Source read failed") from None
+            raise SuperteamReadError(ReadFailure.NETWORK) from None
         finally:
-            connection.close()
+            if connection is not None:
+                connection.close()

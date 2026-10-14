@@ -5,6 +5,10 @@
   "documentation": "https://superteam.fun/skill.md",
   "source_repository": "https://github.com/SuperteamDAO/earn",
   "source_revision": "f3bf49436d10f89e82131ecb04ffb401114afab5",
+  "additional_synthetic_cases": {
+    "live_duplicates.json": "Repeated source IDs, a robustness case rather than a claim that production duplicates rows.",
+    "detail_unknown.json": "Omitted/null fields and a deliberate future field; verifies conservative UNKNOWN handling. Not a production sample."
+  },
   "source_paths": [
     "src/pages/api/agents/listings/live.ts",
     "src/pages/api/agents/listings/details/[slug].ts",
