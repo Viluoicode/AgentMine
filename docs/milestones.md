@@ -140,3 +140,11 @@ lookup enrichment, per-record provenance and validation reports. Optional semant
 use budgeted LLM assistance with strict row/column correlation. SQLite retains plans,
 responses/results and single-owner dispatch claims. No real collection API, new dependency
 or external submission. See [DataWorker](data-worker.md) and [ADR 0011](adr/0011-data-worker.md).
+
+## Milestone 4D: Deliverable QA
+
+Implemented ordered deterministic/domain-specific checks and optional budgeted semantic
+review. Four evidence-bearing outcomes are retained through QAJournal/SQLite. PASS only
+moves to READY_FOR_HUMAN_REVIEW; no approval or submission is automatic. Includes offline
+unit and integration recovery tests. See [Deliverable QA](deliverable-qa.md) and
+[ADR 0012](adr/0012-deliverable-qa.md).

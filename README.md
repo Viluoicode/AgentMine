@@ -153,3 +153,8 @@ Milestone 4C adds [DataWorker](docs/data-worker.md): deterministic CSV/JSON coll
 extraction, categorization, normalization, validation and lookup enrichment. AI is optional
 and limited to explicitly designated semantic fields. Outputs preserve row/field provenance;
 SQLite checkpoints support cost accounting and recovery. No new dependency or submission.
+
+Milestone 4D adds [Deliverable QA](docs/deliverable-qa.md): deterministic checks first,
+Research/Data validation next, and budget-authorized AI review only for semantic requirements.
+Reports preserve reasons and evidence. PASS means READY_FOR_HUMAN_REVIEW; human approval
+and submission remain separate. No dependencies or live integrations were added.

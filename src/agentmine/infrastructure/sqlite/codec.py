@@ -18,6 +18,9 @@ from agentmine.application.contracts import (
     submission,
     workflow,
 )
+from agentmine.application.contracts import (
+    qa as qa_contracts,
+)
 from agentmine.application.errors import PortError, PortErrorCode
 from agentmine.domain import (
     budget,
@@ -31,6 +34,9 @@ from agentmine.domain import (
     values,
     work,
 )
+from agentmine.domain import (
+    qa as qa_domain,
+)
 
 
 class SnapshotCodec:
@@ -38,6 +44,8 @@ class SnapshotCodec:
 
     def __init__(self) -> None:
         modules = (
+            qa_contracts,
+            qa_domain,
             ai,
             data,
             opportunities,

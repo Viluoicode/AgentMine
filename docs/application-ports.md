@@ -178,3 +178,12 @@ DataPlan/DataResult. DataJournal owns immutable data plans, atomic semantic disp
 responses and final results. SQLite implements it using existing snapshot mechanisms.
 DataWorker processes supplied source snapshots; no speculative collection API is introduced.
 LLMProvider remains unchanged. See [data contracts and constraints](data-worker.md).
+
+## QA evidence journal (Milestone 4D)
+
+Application owns `QAJournal`: retain immutable QAInspection and QAReport, atomically claim
+one AI dispatch per authorization operation, and retain correlated AIResponse for recovery.
+Identical writes are idempotent; changed payloads under an existing ID conflict. Persistence
+adapters must enforce this across callers, not just inside one process. SQLiteQAJournal
+implements these responsibilities. DeliverableQA owns ordering, budget checks and lifecycle
+coordination; the domain owns report outcome/order invariants. See [Deliverable QA](deliverable-qa.md).
