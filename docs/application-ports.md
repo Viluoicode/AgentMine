@@ -214,3 +214,12 @@ must supply independent settlement evidence for VERIFIED; claims without it rema
 unverifiable. VerifyPayment requires the submission repository explicitly for recovery.
 GetEconomicMetrics derives current outcome/payment/recorded-cost values through existing ports.
 See [tracking](outcome-payment-tracking.md) for trust, codec compatibility and limits.
+
+## Milestone 5D historical interfaces
+
+Application owns HistoricalRepository (immutable capture, atomic sequence/latest advancement,
+latest/as-of cohorts) and HistoricalPerformance.statistics (read-only descriptive counts and
+cost statistics). SQLiteHistoricalRepository implements persistence; GetHistoricalStatistics
+implements the future scoring read boundary without wiring it into scoring. Provenance,
+unknowns, prediction freeze, sample denominators and per-currency semantics are specified in
+[Historical Learning Dataset](historical-learning.md).

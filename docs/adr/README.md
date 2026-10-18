@@ -32,3 +32,5 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0014: Explicit submission modes and durable receipt evidence](0014-submission-system.md)
 
 - [0015: Independent settlement evidence and derived economic metrics](0015-outcome-payment-tracking.md)
+
+- [0016: Auditable historical observations and descriptive performance port](0016-historical-learning.md)

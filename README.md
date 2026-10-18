@@ -174,3 +174,9 @@ outcome/payment observations, rejection reasons, independent settlement evidence
 recorded-cost economic metrics. ACCEPTED remains distinct from PAID; only proven payment
 creates verified revenue. Legacy PAID data lacking proof requires explicit re-verification.
 No production payment verifier, wallet action or dependency is added.
+
+Milestone 5D adds [Historical Learning Dataset](docs/historical-learning.md): immutable
+observations joining stored forecasts, attributed costs, attempt/skip decisions and verified
+outcomes. Read-only statistics cover Research/Data acceptance, cost prediction errors and
+source cohorts, with latest/as-of deduplication. Capture is explicitly invoked. No model is
+trained and production scoring behavior is unchanged; no dependency is added.

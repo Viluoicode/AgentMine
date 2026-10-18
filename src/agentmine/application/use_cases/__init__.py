@@ -3,6 +3,10 @@
 from agentmine.application.use_cases.approval import ApproveSubmission, RequestHumanApproval
 from agentmine.application.use_cases.eligibility import CheckEligibility
 from agentmine.application.use_cases.execution import ExecuteTask, RunQA
+from agentmine.application.use_cases.history import (
+    CaptureHistoricalObservation,
+    GetHistoricalStatistics,
+)
 from agentmine.application.use_cases.manual_submission import RecordManualSubmission
 from agentmine.application.use_cases.metrics import GetEconomicMetrics
 from agentmine.application.use_cases.planning import (
@@ -16,6 +20,8 @@ from agentmine.application.use_cases.settlement import SubmitTask, TrackOutcome,
 
 __all__ = [
     "ApproveSubmission",
+    "CaptureHistoricalObservation",
+    "GetHistoricalStatistics",
     "CheckEligibility",
     "DiscoverOpportunities",
     "EvaluateOpportunity",

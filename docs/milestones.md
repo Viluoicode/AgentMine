@@ -172,3 +172,11 @@ economic metrics derive verified revenue minus four-category recorded costs with
 forecasts. SQLite enforces cross-submission payment uniqueness. Legacy PAID without independent
 proof fails closed. See [tracking](outcome-payment-tracking.md) and
 [ADR 0015](adr/0015-outcome-payment-tracking.md).
+
+## Milestone 5D: Historical Learning Dataset
+
+Implemented explicit historical capture with immutable observations, provenance/revisions,
+pre-attempt forecasts, latest/as-of reporting and SQLite concurrency/rollback guarantees.
+Statistics expose Research/Data attempts/acceptance, source outcomes and per-currency cost
+averages/errors with sample counts. No training or production scoring change. See
+[Historical Learning Dataset](historical-learning.md) and [ADR 0016](adr/0016-historical-learning.md).
