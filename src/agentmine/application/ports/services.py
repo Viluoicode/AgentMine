@@ -62,7 +62,14 @@ class SubmissionGateway(Protocol):
 
 
 class PaymentVerifier(Protocol):
-    """Observe independently evidenced payment; acceptance is not payment."""
+    """Read independent ledger/provider settlement evidence for the authorized recipient.
+
+    Verify submission correlation, amount/currency, settlement time and payment ID.
+    A marketplace winner flag, operator claim or model output is not independent
+    evidence: return PENDING/UNVERIFIABLE, with no payment, when proof is unavailable.
+    Implementations supply stable verification-source IDs and auditable records.
+    No payment transfer, wallet action or guessed provider contract is authorized.
+    """
 
     def verify_payment(self, request: PaymentVerificationRequest) -> PaymentVerificationResult: ...
 

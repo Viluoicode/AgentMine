@@ -4,6 +4,8 @@ import hashlib
 from dataclasses import dataclass
 
 from agentmine.application.contracts.submission import (
+    OutcomeObservation,
+    PaymentVerificationResult,
     SubmissionAttemptStatus,
     SubmissionRequest,
     SubmissionResult,
@@ -96,6 +98,85 @@ class SQLiteSubmissionRepository:
     def get(self, reference: Reference) -> Submission | None:
         result = self.database.get("submission", reference.value, Submission)
         return None if result is None else result.value
+
+    def record_outcome_observation(self, observation: OutcomeObservation) -> None:
+        self._record_observation(observation)
+
+    def outcome_history(self, reference: Reference) -> tuple[OutcomeObservation, ...]:
+        return tuple(
+            item.value
+            for item in self.database.find(
+                "outcome_observation", OutcomeObservation, parent=reference.value
+            )
+        )
+
+    def record_payment_observation(self, result: PaymentVerificationResult) -> None:
+        self._record_observation(result)
+
+    def payment_history(self, reference: Reference) -> tuple[PaymentVerificationResult, ...]:
+        return tuple(
+            item.value
+            for item in self.database.find(
+                "payment_observation", PaymentVerificationResult, parent=reference.value
+            )
+        )
+
+    def _record_observation(
+        self, observation: OutcomeObservation | PaymentVerificationResult
+    ) -> None:
+        kind = (
+            "outcome_observation"
+            if isinstance(observation, OutcomeObservation)
+            else "payment_observation"
+        )
+        with self.database.transaction(write=True) as connection:
+            rows = connection.execute("SELECT * FROM snapshots WHERE kind = ?", (kind,)).fetchall()
+            for row in rows:
+                if isinstance(observation, OutcomeObservation):
+                    prior_outcome = self.database.decode(row, OutcomeObservation).value
+                    if prior_outcome == observation:
+                        return
+                    if (
+                        prior_outcome.submission_reference == observation.submission_reference
+                        and prior_outcome.outcome is not None
+                        and observation.outcome is not None
+                        and prior_outcome.outcome != observation.outcome
+                    ):
+                        raise PortError(PortErrorCode.CONFLICT, "outcome", "Final outcome changed")
+                else:
+                    prior = self.database.decode(row, PaymentVerificationResult).value
+                    if prior == observation:
+                        return
+                    old, new = prior.verification, observation.verification
+                    if old is not None and new is not None:
+                        if (
+                            prior.submission_reference == observation.submission_reference
+                            and old != new
+                        ):
+                            raise PortError(
+                                PortErrorCode.CONFLICT, "payment", "Verified payment changed"
+                            )
+                        if prior.submission_reference != observation.submission_reference and (
+                            old.verification_source,
+                            old.payment_reference,
+                        ) == (new.verification_source, new.payment_reference):
+                            raise PortError(
+                                PortErrorCode.CONFLICT,
+                                "payment",
+                                "Payment already credited to another submission",
+                            )
+            digest = hashlib.sha256(self.database.codec.dumps(observation).encode()).hexdigest()
+            self.database.write(
+                connection,
+                kind,
+                composite_key(observation.submission_reference.value, digest),
+                observation,
+                1,
+                IndexValues(
+                    parent=observation.submission_reference.value,
+                    occurred_at=observation.observed_at,
+                ),
+            )
 
     def save_outcome(self, outcome: Outcome) -> None:
         self.database.immutable("outcome", outcome.submission_reference.value, outcome)

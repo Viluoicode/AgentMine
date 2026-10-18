@@ -163,3 +163,12 @@ response metadata and durable recovery. Duplicate protection covers both intent 
 deliverable versions, with atomic confirmation conflicts and pre-5B snapshot compatibility.
 All tests run offline; live marketplace submission remains gated by verified contracts.
 See [Submission System](submission-system.md) and [ADR 0014](adr/0014-submission-system.md).
+
+## Milestone 5C: Outcome and Payment Tracking
+
+Implemented independent payment evidence, payment ID/time/currency, accepted versus verified
+reward, retained pending/unverifiable checks, rejection reasons and retry recovery. Current
+economic metrics derive verified revenue minus four-category recorded costs without altering
+forecasts. SQLite enforces cross-submission payment uniqueness. Legacy PAID without independent
+proof fails closed. See [tracking](outcome-payment-tracking.md) and
+[ADR 0015](adr/0015-outcome-payment-tracking.md).

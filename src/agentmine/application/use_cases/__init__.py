@@ -4,6 +4,7 @@ from agentmine.application.use_cases.approval import ApproveSubmission, RequestH
 from agentmine.application.use_cases.eligibility import CheckEligibility
 from agentmine.application.use_cases.execution import ExecuteTask, RunQA
 from agentmine.application.use_cases.manual_submission import RecordManualSubmission
+from agentmine.application.use_cases.metrics import GetEconomicMetrics
 from agentmine.application.use_cases.planning import (
     DiscoverOpportunities,
     EvaluateOpportunity,
@@ -19,6 +20,7 @@ __all__ = [
     "DiscoverOpportunities",
     "EvaluateOpportunity",
     "ExecuteTask",
+    "GetEconomicMetrics",
     "NormalizeOpportunity",
     "PlanTask",
     "RecordManualSubmission",

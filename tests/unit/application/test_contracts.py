@@ -29,6 +29,7 @@ from agentmine.domain.errors import DomainError
 from agentmine.domain.finance import Cost, CostCategory, ExpectedValue, Reward, RewardStage
 from agentmine.domain.money import Money
 from agentmine.domain.opportunity import Opportunity
+from agentmine.domain.payment import PaymentEvidence, PaymentVerificationMethod
 from agentmine.domain.spending import CostContext, CostRecord, OperationType
 from agentmine.domain.values import Reference
 from agentmine.domain.work import (
@@ -238,7 +239,19 @@ def test_pending_payment_does_not_create_revenue(submission: Submission, at: dat
         Reference("payment-evidence"),
         submission.reference,
     )
-    verified = replace(result, status=PaymentStatus.VERIFIED, payment=payment)
+    verified = replace(
+        result,
+        status=PaymentStatus.VERIFIED,
+        payment=payment,
+        verification=PaymentEvidence(
+            payment,
+            Reference("transaction"),
+            at,
+            Reference("independent-provider"),
+            Reference("payment-evidence"),
+            PaymentVerificationMethod.PAYMENT_PROVIDER_SETTLEMENT,
+        ),
+    )
     with pytest.raises(DomainError):
         replace(verified, status=PaymentStatus.PENDING)
     with pytest.raises(DomainError):

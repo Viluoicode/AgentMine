@@ -168,3 +168,9 @@ Milestone 5B adds [Submission System](docs/submission-system.md): API/MANUAL/UNS
 modes, approved manual packages, operator receipt recording and retained response metadata.
 Retries reuse receipts or reconcile; changing IDs cannot resend the same deliverable version.
 All modes require human approval. No production marketplace POST adapter or live send is added.
+
+Milestone 5C adds [Outcome and Payment Tracking](docs/outcome-payment-tracking.md): retained
+outcome/payment observations, rejection reasons, independent settlement evidence and current
+recorded-cost economic metrics. ACCEPTED remains distinct from PAID; only proven payment
+creates verified revenue. Legacy PAID data lacking proof requires explicit re-verification.
+No production payment verifier, wallet action or dependency is added.

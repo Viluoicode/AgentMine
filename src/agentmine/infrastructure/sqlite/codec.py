@@ -31,6 +31,7 @@ from agentmine.domain import (
     finance,
     money,
     opportunity,
+    payment,
     scoring,
     spending,
     values,
@@ -63,6 +64,7 @@ class SnapshotCodec:
             finance,
             money,
             opportunity,
+            payment,
             scoring,
             spending,
             values,
@@ -190,7 +192,7 @@ class SnapshotCodec:
         cls = self._types[node["type"]]
         if not is_dataclass(cls):
             raise ValueError("Dataclass required")
-        # Narrow additive migration for pre-5B submission snapshots only.
+        # Narrow additive migrations; legacy payment proof is never fabricated.
         legacy_defaults: dict[str, object] = {}
         if cls is submission.SubmissionRequest:
             legacy_defaults = {"mode": submission.SubmissionMode.API}
@@ -202,6 +204,12 @@ class SnapshotCodec:
                 "manual_package": None,
                 "recorded_by": None,
             }
+        elif cls is work.Outcome:
+            legacy_defaults = {"rejection_reason": None}
+        elif cls is opportunity.Opportunity:
+            legacy_defaults = {"payment_verification": None}
+        elif cls is submission.PaymentVerificationResult:
+            legacy_defaults = {"verification": None}
         definitions = fields(cls)
         expected_fields = {field.name for field in definitions}
         if legacy_defaults and set(node["fields"]) == expected_fields - legacy_defaults.keys():
@@ -230,6 +238,22 @@ class SnapshotCodec:
             elif getattr(instance, field.name) != decoded[field.name]:
                 raise ValueError("Derived calculation mismatch")
         if isinstance(instance, opportunity.Opportunity):
+            if instance.state == opportunity.OpportunityState.PAID:
+                proof = instance.payment_verification
+                if proof is None:
+                    raise PortError(
+                        PortErrorCode.UNSUPPORTED,
+                        "deserialize",
+                        "Legacy PAID lacks independent evidence; explicit re-verification required",
+                    )
+                if (
+                    instance.submission is None
+                    or proof.reward != instance.payment
+                    or proof.reward.submission_reference != instance.submission.reference
+                    or proof.payment_timestamp < instance.submission.submitted_at
+                    or proof.reward.amount.currency != instance.currency
+                ):
+                    raise ValueError("Invalid paid evidence binding")
             history = instance.history
             if (
                 not history

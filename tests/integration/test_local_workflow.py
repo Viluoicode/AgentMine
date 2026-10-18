@@ -158,10 +158,15 @@ def test_same_application_flow_with_either_repository_backend(
     assert accepted.verified_revenue == usd("0")
     assert repos.submissions.get_outcome(Reference("sub")) == accepted.outcome
     assert (
-        VerifyPayment(repos.opportunities, verifier, clock).execute(original.reference) == accepted
+        VerifyPayment(repos.opportunities, verifier, clock, repos.submissions).execute(
+            original.reference
+        )
+        == accepted
     )
     verifier.status = PaymentStatus.VERIFIED
-    paid = VerifyPayment(repos.opportunities, verifier, clock).execute(original.reference)
+    paid = VerifyPayment(repos.opportunities, verifier, clock, repos.submissions).execute(
+        original.reference
+    )
     checkpoint(paid)
     assert paid.state == OpportunityState.PAID and paid.verified_revenue == usd("85")
     ledger = repos.ledger.get(Reference("ledger"))

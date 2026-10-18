@@ -230,7 +230,7 @@ def test_all_thirteen_use_cases_with_fakes_and_only_payment_creates_revenue(worl
     ).execute(world.reference)
     assert outcome.state == OpportunityState.ACCEPTED
     assert outcome.verified_revenue == usd("0")
-    verifier = VerifyPayment(world.opportunities, world.verifier, world.clock)
+    verifier = VerifyPayment(world.opportunities, world.verifier, world.clock, world.submissions)
     assert verifier.execute(world.reference).state == OpportunityState.ACCEPTED
     world.verifier.status = PaymentStatus.VERIFIED
     paid = verifier.execute(world.reference)
@@ -444,7 +444,9 @@ def test_outcome_tracking_continues_in_scout_mode_and_unknown_outcome_is_not_rej
     world.gateway.outcome_status = OutcomeStatus.REJECTED
     assert tracker.execute(world.reference).state == OpportunityState.REJECTED
     with pytest.raises(ApplicationError):
-        VerifyPayment(world.opportunities, world.verifier, world.clock).execute(world.reference)
+        VerifyPayment(world.opportunities, world.verifier, world.clock, world.submissions).execute(
+            world.reference
+        )
     assert world.verifier.calls == 0
 
 
@@ -540,7 +542,9 @@ def test_mismatched_payment_currency_cannot_create_verified_revenue(world: World
     world.verifier.status = PaymentStatus.VERIFIED
     world.verifier.amount = Money(Decimal("85"), "EUR")
     with pytest.raises(DomainError):
-        VerifyPayment(world.opportunities, world.verifier, world.clock).execute(world.reference)
+        VerifyPayment(world.opportunities, world.verifier, world.clock, world.submissions).execute(
+            world.reference
+        )
     assert world.current().state == OpportunityState.ACCEPTED
     assert world.current().verified_revenue == usd("0")
 

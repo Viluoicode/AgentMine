@@ -7,6 +7,7 @@ from agentmine.domain.budget import Budget, BudgetPolicy
 from agentmine.domain.finance import CostCategory, ExpectedValue, Reward, RewardStage
 from agentmine.domain.money import Money
 from agentmine.domain.opportunity import Opportunity, OpportunityState
+from agentmine.domain.payment import PaymentEvidence, PaymentVerificationMethod
 from agentmine.domain.spending import CostContext, OperationType
 from agentmine.domain.values import Reference
 from agentmine.domain.work import (
@@ -127,5 +128,17 @@ def lifecycle() -> dict[OpportunityState, Opportunity]:
         Reference("payment-1"),
         submission.reference,
     )
-    remember(opportunity.verify_payment(payment))
+    remember(
+        opportunity.verify_payment(
+            payment,
+            PaymentEvidence(
+                payment,
+                Reference("transaction-1"),
+                submission.submitted_at,
+                Reference("independent-provider"),
+                Reference("payment-1"),
+                PaymentVerificationMethod.PAYMENT_PROVIDER_SETTLEMENT,
+            ),
+        )
+    )
     return snapshots

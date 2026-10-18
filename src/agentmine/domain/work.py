@@ -279,12 +279,21 @@ class Outcome:
     status: OutcomeStatus
     evidence: Reference
     accepted_reward: Reward | None = None
+    rejection_reason: str | None = None
 
     def __post_init__(self) -> None:
         require_reference(self.submission_reference, "submission_reference")
         require_reference(self.evidence, "evidence")
         if not isinstance(self.status, OutcomeStatus):
             raise DomainError(ErrorCode.INVALID_VALUE, "outcome", "Unknown outcome status")
+        if self.rejection_reason is not None and (
+            self.status != OutcomeStatus.REJECTED
+            or not isinstance(self.rejection_reason, str)
+            or not self.rejection_reason.strip()
+        ):
+            raise DomainError(
+                ErrorCode.INVALID_VALUE, "rejection_reason", "Reason belongs to a rejected outcome"
+            )
         if self.accepted_reward is not None and (
             self.status != OutcomeStatus.ACCEPTED
             or self.accepted_reward.stage != RewardStage.ACCEPTED

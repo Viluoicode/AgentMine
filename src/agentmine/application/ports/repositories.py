@@ -10,7 +10,12 @@ from agentmine.application.contracts.records import (
     OpportunitySave,
     Versioned,
 )
-from agentmine.application.contracts.submission import SubmissionRequest, SubmissionResult
+from agentmine.application.contracts.submission import (
+    OutcomeObservation,
+    PaymentVerificationResult,
+    SubmissionRequest,
+    SubmissionResult,
+)
 from agentmine.application.contracts.workflow import ExecuteTaskRequest
 from agentmine.domain.budget import Budget
 from agentmine.domain.opportunity import Opportunity
@@ -96,6 +101,21 @@ class SubmissionRepository(Protocol):
     def save(self, submission: Submission) -> None: ...
 
     def get(self, reference: Reference) -> Submission | None: ...
+
+    def record_outcome_observation(self, observation: OutcomeObservation) -> None:
+        """Retain pending/final observations; conflicting final outcomes fail atomically."""
+        ...
+
+    def outcome_history(self, reference: Reference) -> tuple[OutcomeObservation, ...]: ...
+
+    def record_payment_observation(self, result: PaymentVerificationResult) -> None:
+        """Retain checks; bind source/payment ID to one submission atomically.
+
+        Conflicting verified evidence for the same submission must fail.
+        """
+        ...
+
+    def payment_history(self, reference: Reference) -> tuple[PaymentVerificationResult, ...]: ...
 
     def save_outcome(self, outcome: Outcome) -> None: ...
 

@@ -14,6 +14,7 @@ from agentmine.domain.economics import EconomicAssessment
 from agentmine.domain.errors import DomainError, ErrorCode
 from agentmine.domain.finance import ExpectedValue, Reward, RewardStage
 from agentmine.domain.money import Money
+from agentmine.domain.payment import PaymentEvidence
 from agentmine.domain.revalidation import ResumeAssessment
 from agentmine.domain.scoring import ScoringAssessment
 from agentmine.domain.spending import AuthorizationStatus, OperationType, SpendingRequest
@@ -50,6 +51,7 @@ class _OpportunityChanges(TypedDict, total=False):
     submission: Submission
     outcome: Outcome
     payment: Reward
+    payment_verification: PaymentEvidence
     skip_reason: str
     waiting_request: SpendingRequest | None
     waiting_state: OpportunityState | None
@@ -161,6 +163,7 @@ class Opportunity:
     submission: Submission | None = field(default=None, init=False)
     outcome: Outcome | None = field(default=None, init=False)
     payment: Reward | None = field(default=None, init=False)
+    payment_verification: PaymentEvidence | None = field(default=None, init=False)
     skip_reason: str | None = field(default=None, init=False)
     waiting_request: SpendingRequest | None = field(default=None, init=False)
     waiting_state: OpportunityState | None = field(default=None, init=False)
@@ -448,7 +451,18 @@ class Opportunity:
         )
         return self._move(target, outcome=outcome)
 
-    def verify_payment(self, payment: Reward) -> Opportunity:
+    def verify_payment(
+        self, payment: Reward, evidence: PaymentEvidence | None = None
+    ) -> Opportunity:
+        self._require_state(OpportunityState.ACCEPTED)
+        if not isinstance(evidence, PaymentEvidence) or evidence.reward != payment:
+            raise DomainError(
+                ErrorCode.EVIDENCE_MISMATCH, "payment", "Independent settlement evidence required"
+            )
+        if self.submission is None or evidence.payment_timestamp < self.submission.submitted_at:
+            raise DomainError(
+                ErrorCode.EVIDENCE_MISMATCH, "payment_timestamp", "Payment predates submission"
+            )
         if payment.stage != RewardStage.VERIFIED_PAYMENT:
             raise DomainError(
                 ErrorCode.INVALID_VALUE, "payment", "Verified payment evidence required"
@@ -456,11 +470,48 @@ class Opportunity:
         if self.submission is None or payment.submission_reference != self.submission.reference:
             raise DomainError(ErrorCode.EVIDENCE_MISMATCH, "payment", "Payment submission mismatch")
         self.potential_reward.amount.require_same_currency(payment.amount)
-        return self._move(OpportunityState.PAID, payment=payment)
+        return self._move(OpportunityState.PAID, payment=payment, payment_verification=evidence)
+
+    @property
+    def accepted_reward(self) -> Reward | None:
+        return None if self.outcome is None else self.outcome.accepted_reward
+
+    @property
+    def verified_reward(self) -> Reward | None:
+        return (
+            self.payment
+            if self.state == OpportunityState.PAID and self.payment_verification is not None
+            else None
+        )
+
+    @property
+    def payment_reference(self) -> Reference | None:
+        return (
+            None
+            if self.payment_verification is None
+            else self.payment_verification.payment_reference
+        )
+
+    @property
+    def payment_timestamp(self) -> datetime | None:
+        return (
+            None
+            if self.payment_verification is None
+            else self.payment_verification.payment_timestamp
+        )
+
+    @property
+    def currency(self) -> str:
+        return self.potential_reward.amount.currency
 
     @property
     def verified_revenue(self) -> Money:
-        if self.state == OpportunityState.PAID and self.payment is not None:
+        if (
+            self.state == OpportunityState.PAID
+            and self.payment is not None
+            and self.payment_verification is not None
+            and self.payment_verification.reward == self.payment
+        ):
             return self.payment.amount
         return Money(Decimal(0), self.potential_reward.amount.currency)
 

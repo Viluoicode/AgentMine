@@ -30,3 +30,5 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0013: One-operator approval snapshots and scoped consent](0013-human-approval.md)
 
 - [0014: Explicit submission modes and durable receipt evidence](0014-submission-system.md)
+
+- [0015: Independent settlement evidence and derived economic metrics](0015-outcome-payment-tracking.md)

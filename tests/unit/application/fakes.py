@@ -54,6 +54,7 @@ from agentmine.domain.eligibility import (
 from agentmine.domain.finance import Cost, CostCategory, Reward, RewardStage
 from agentmine.domain.money import Money
 from agentmine.domain.opportunity import Opportunity
+from agentmine.domain.payment import PaymentEvidence, PaymentVerificationMethod
 from agentmine.domain.scoring import ScoringPolicy, ScoringSignals
 from agentmine.domain.spending import CostRecord
 from agentmine.domain.values import Reference
@@ -282,6 +283,8 @@ class FakeSubmissions:
     attempts: list[SubmissionResult] = field(default_factory=list)
     submissions: dict[Reference, Submission] = field(default_factory=dict)
     outcomes: dict[Reference, Outcome] = field(default_factory=dict)
+    outcome_observations: list[OutcomeObservation] = field(default_factory=list)
+    payment_observations: list[PaymentVerificationResult] = field(default_factory=list)
 
     def save_request(self, request: SubmissionRequest) -> None:
         for other in self.requests.values():
@@ -326,6 +329,42 @@ class FakeSubmissions:
 
     def get(self, reference: Reference) -> Submission | None:
         return self.submissions.get(reference)
+
+    def record_outcome_observation(self, observation: OutcomeObservation) -> None:
+        for prior in self.outcome_observations:
+            if (
+                prior.submission_reference == observation.submission_reference
+                and prior.outcome is not None
+                and observation.outcome is not None
+                and prior.outcome != observation.outcome
+            ):
+                raise PortError(PortErrorCode.CONFLICT, "outcome", "Final outcome changed")
+        if observation not in self.outcome_observations:
+            self.outcome_observations.append(observation)
+
+    def outcome_history(self, reference: Reference) -> tuple[OutcomeObservation, ...]:
+        return tuple(
+            item for item in self.outcome_observations if item.submission_reference == reference
+        )
+
+    def record_payment_observation(self, result: PaymentVerificationResult) -> None:
+        for prior in self.payment_observations:
+            old, new = prior.verification, result.verification
+            if old is not None and new is not None:
+                if prior.submission_reference == result.submission_reference and old != new:
+                    raise PortError(PortErrorCode.CONFLICT, "payment", "Payment changed")
+                if prior.submission_reference != result.submission_reference and (
+                    old.verification_source,
+                    old.payment_reference,
+                ) == (new.verification_source, new.payment_reference):
+                    raise PortError(PortErrorCode.CONFLICT, "payment", "Payment already credited")
+        if result not in self.payment_observations:
+            self.payment_observations.append(result)
+
+    def payment_history(self, reference: Reference) -> tuple[PaymentVerificationResult, ...]:
+        return tuple(
+            item for item in self.payment_observations if item.submission_reference == reference
+        )
 
     def save_outcome(self, outcome: Outcome) -> None:
         put(self.outcomes, outcome.submission_reference, outcome)
@@ -400,6 +439,16 @@ class FakeVerifier:
             self.clock.now(),
             payment,
             "Fake verification",
+            None
+            if payment is None
+            else PaymentEvidence(
+                payment,
+                Reference("payment-reference:" + request.submission.reference.value),
+                self.clock.now(),
+                Reference("independent-test-provider"),
+                Reference("payment-evidence"),
+                PaymentVerificationMethod.PAYMENT_PROVIDER_SETTLEMENT,
+            ),
         )
 
 

@@ -7,6 +7,7 @@ from enum import StrEnum
 from agentmine.application.contracts.ai import ReferencedText
 from agentmine.domain.errors import DomainError, ErrorCode
 from agentmine.domain.finance import Reward, RewardStage
+from agentmine.domain.payment import PaymentEvidence
 from agentmine.domain.values import Reference, require_aware_timestamp, require_reference
 from agentmine.domain.work import (
     Deliverable,
@@ -169,9 +170,30 @@ class PaymentVerificationResult:
     observed_at: datetime
     payment: Reward | None
     explanation: str
+    verification: PaymentEvidence | None = None
 
     def __post_init__(self) -> None:
         require_aware_timestamp(self.observed_at)
+        require_reference(self.submission_reference, "submission")
+        if not self.explanation.strip():
+            raise DomainError(
+                ErrorCode.INVALID_VALUE, "explanation", "Verification explanation required"
+            )
+        if (self.status == PaymentStatus.VERIFIED) != (self.verification is not None):
+            raise DomainError(
+                ErrorCode.EVIDENCE_MISMATCH,
+                "verification",
+                "Independent verification required for VERIFIED",
+            )
+        if self.verification is not None and (
+            self.verification.reward != self.payment
+            or self.verification.payment_timestamp > self.observed_at
+        ):
+            raise DomainError(
+                ErrorCode.EVIDENCE_MISMATCH,
+                "verification",
+                "Payment evidence or timestamp mismatch",
+            )
         if not isinstance(self.status, PaymentStatus):
             raise DomainError(ErrorCode.INVALID_VALUE, "status", "Unknown payment status")
         if (self.status == PaymentStatus.VERIFIED) != (self.payment is not None):

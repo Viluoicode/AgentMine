@@ -205,3 +205,12 @@ Repository must prevent duplicate intents under different IDs for the same deliv
 reference/version and atomically reject conflicting confirmations. SubmissionGateway.reconcile
 is strictly observation-only. SQLite and test fakes enforce the stronger repository contract.
 See [Submission System](submission-system.md) for migration, recovery and live prerequisites.
+
+## Milestone 5C outcome/payment evidence
+
+SubmissionRepository retains outcome/payment histories, rejects conflicting final observations,
+and atomically binds each verification-source/payment ID to one submission. PaymentVerifier
+must supply independent settlement evidence for VERIFIED; claims without it remain pending or
+unverifiable. VerifyPayment requires the submission repository explicitly for recovery.
+GetEconomicMetrics derives current outcome/payment/recorded-cost values through existing ports.
+See [tracking](outcome-payment-tracking.md) for trust, codec compatibility and limits.

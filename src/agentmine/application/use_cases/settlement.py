@@ -204,7 +204,13 @@ class TrackOutcome:
             return previous.value
         require_state(previous.value, OpportunityState.SUBMITTED)
         assert previous.value.submission is not None
-        observation = self.gateway.track_outcome(previous.value.submission)
+        retained = self.submissions.get_outcome(previous.value.submission.reference)
+        if retained is not None:
+            return save(self.opportunities, previous, previous.value.record_outcome(retained))
+        history = self.submissions.outcome_history(previous.value.submission.reference)
+        observation = next((item for item in history if item.outcome is not None), None)
+        if observation is None:
+            observation = self.gateway.track_outcome(previous.value.submission)
         if (
             observation.submission_reference != previous.value.submission.reference
             or not previous.value.submission.submitted_at
@@ -214,9 +220,14 @@ class TrackOutcome:
             raise PortError(
                 PortErrorCode.INVALID_RESPONSE, "outcome", "Outcome observation mismatch"
             )
-        if observation.outcome is None:
+        updated = (
+            None
+            if observation.outcome is None
+            else previous.value.record_outcome(observation.outcome)
+        )
+        self.submissions.record_outcome_observation(observation)
+        if observation.outcome is None or updated is None:
             return previous.value
-        updated = previous.value.record_outcome(observation.outcome)
         self.submissions.save_outcome(observation.outcome)
         return save(self.opportunities, previous, updated)
 
@@ -226,6 +237,7 @@ class VerifyPayment:
     opportunities: OpportunityRepository
     verifier: PaymentVerifier
     clock: Clock
+    submissions: SubmissionRepository
 
     def execute(self, reference: Reference) -> Opportunity:
         previous = load(self.opportunities, reference)
@@ -233,9 +245,12 @@ class VerifyPayment:
             return previous.value
         require_state(previous.value, OpportunityState.ACCEPTED)
         assert previous.value.submission is not None and previous.value.outcome is not None
-        result = self.verifier.verify_payment(
-            PaymentVerificationRequest(previous.value.submission, previous.value.outcome)
-        )
+        history = self.submissions.payment_history(previous.value.submission.reference)
+        result = next((item for item in history if item.payment is not None), None)
+        if result is None:
+            result = self.verifier.verify_payment(
+                PaymentVerificationRequest(previous.value.submission, previous.value.outcome)
+            )
         if (
             result.submission_reference != previous.value.submission.reference
             or not previous.value.submission.submitted_at <= result.observed_at <= self.clock.now()
@@ -243,6 +258,12 @@ class VerifyPayment:
             raise PortError(
                 PortErrorCode.INVALID_RESPONSE, "payment", "Payment observation mismatch"
             )
-        if result.payment is None:
+        updated = (
+            None
+            if result.payment is None
+            else previous.value.verify_payment(result.payment, result.verification)
+        )
+        self.submissions.record_payment_observation(result)
+        if updated is None:
             return previous.value
-        return save(self.opportunities, previous, previous.value.verify_payment(result.payment))
+        return save(self.opportunities, previous, updated)

@@ -20,6 +20,7 @@ from agentmine.domain.budget import Budget, BudgetPolicy
 from agentmine.domain.finance import CostCategory, ExpectedValue, Reward, RewardStage
 from agentmine.domain.money import Money
 from agentmine.domain.opportunity import Opportunity, OpportunityState
+from agentmine.domain.payment import PaymentEvidence, PaymentVerificationMethod
 from agentmine.domain.spending import CostContext, OperationType
 from agentmine.domain.values import Reference
 from agentmine.domain.work import (
@@ -119,9 +120,18 @@ def snapshots(identifier: str = "op", score: str = "75") -> dict[OpportunityStat
             )
         )
     )
+    payment = Reward(usd("85"), RewardStage.VERIFIED_PAYMENT, Reference("payment"), sub.reference)
     remember(
         op.verify_payment(
-            Reward(usd("85"), RewardStage.VERIFIED_PAYMENT, Reference("payment"), sub.reference)
+            payment,
+            PaymentEvidence(
+                payment,
+                Reference("transaction:" + identifier),
+                instant(),
+                Reference("independent-provider"),
+                Reference("payment"),
+                PaymentVerificationMethod.PAYMENT_PROVIDER_SETTLEMENT,
+            ),
         )
     )
     return result
