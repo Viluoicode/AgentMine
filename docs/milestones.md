@@ -148,3 +148,18 @@ review. Four evidence-bearing outcomes are retained through QAJournal/SQLite. PA
 moves to READY_FOR_HUMAN_REVIEW; no approval or submission is automatic. Includes offline
 unit and integration recovery tests. See [Deliverable QA](deliverable-qa.md) and
 [ADR 0012](adr/0012-deliverable-qa.md).
+
+## Milestone 5A: Human Approval Boundary
+
+Implemented full operator review snapshots, three audited decisions, exact action scopes,
+persisted spending-approval validation and revision through execution/QA again. SQLite retains
+review/decision evidence. No automatic submission, wallet/account execution or multiple roles.
+See [human approval](human-approval.md) and [ADR 0013](adr/0013-human-approval.md).
+
+## Milestone 5B: Submission System
+
+Implemented API/MANUAL/UNSUPPORTED submission modes, manual packages/receipt recording,
+response metadata and durable recovery. Duplicate protection covers both intent IDs and
+deliverable versions, with atomic confirmation conflicts and pre-5B snapshot compatibility.
+All tests run offline; live marketplace submission remains gated by verified contracts.
+See [Submission System](submission-system.md) and [ADR 0014](adr/0014-submission-system.md).

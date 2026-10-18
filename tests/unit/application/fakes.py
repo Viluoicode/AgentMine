@@ -284,6 +284,14 @@ class FakeSubmissions:
     outcomes: dict[Reference, Outcome] = field(default_factory=dict)
 
     def save_request(self, request: SubmissionRequest) -> None:
+        for other in self.requests.values():
+            if other.reference != request.reference and (
+                other.deliverable.reference,
+                other.deliverable.version,
+            ) == (request.deliverable.reference, request.deliverable.version):
+                raise PortError(
+                    PortErrorCode.CONFLICT, "submit", "Deliverable version already has an intent"
+                )
         put(self.requests, request.reference, request)
 
     def claim_request(self, request: SubmissionRequest) -> bool:
@@ -295,6 +303,18 @@ class FakeSubmissions:
         return self.requests.get(reference)
 
     def record_attempt(self, result: SubmissionResult) -> None:
+        if (
+            result not in self.attempts
+            and result.status == SubmissionAttemptStatus.CONFIRMED
+            and any(
+                item.reference == result.reference
+                and item.status == SubmissionAttemptStatus.CONFIRMED
+                for item in self.attempts
+            )
+        ):
+            raise PortError(
+                PortErrorCode.CONFLICT, "receipt", "Confirmation already recorded differently"
+            )
         if result not in self.attempts:
             self.attempts.append(result)
 

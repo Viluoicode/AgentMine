@@ -26,3 +26,7 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0011: Deterministic DataWorker](0011-data-worker.md)
 
 - [0012: Ordered evidence-bearing deliverable QA](0012-deliverable-qa.md)
+
+- [0013: One-operator approval snapshots and scoped consent](0013-human-approval.md)
+
+- [0014: Explicit submission modes and durable receipt evidence](0014-submission-system.md)

@@ -47,7 +47,12 @@ class LLMProvider(Protocol):
 
 
 class SubmissionGateway(Protocol):
-    """Submit approved versions, reconcile unknown attempts and observe outcomes."""
+    """Submit API requests using their stable reference as provider idempotency key.
+
+    reconcile is observation-only: it MUST NOT send/create another submission.
+    Confirm only with a correlated receipt; retain ID, sanitized response and URL
+    when available. Unknown metadata stays None; confirmation is not acceptance.
+    """
 
     def submit(self, request: SubmissionRequest) -> SubmissionResult: ...
 

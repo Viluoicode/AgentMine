@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+from agentmine.application.budget_manager import BudgetManager
 from agentmine.application.contracts.ai import (
     AIResponse,
     DeliverableDraft,
@@ -16,6 +17,7 @@ from agentmine.application.errors import (
     PortError,
     PortErrorCode,
 )
+from agentmine.application.ports.approval import ApprovalRepository
 from agentmine.application.ports.repositories import (
     CostLedgerRepository,
     ExecutionRepository,
@@ -44,6 +46,7 @@ class ExecuteTask:
     provider: LLMProvider
     source: OpportunitySource
     clock: Clock
+    approvals: ApprovalRepository | None = None
 
     def execute(self, request: ExecuteTaskRequest) -> ExecutionResult:
         previous = load(self.opportunities, request.opportunity_reference)
@@ -89,14 +92,10 @@ class ExecuteTask:
             request.version,
             Reference("pending"),
         )
-        snapshot = self.ledger.get(request.ledger_reference)
-        if snapshot is None:
-            raise ApplicationError(
-                ApplicationErrorCode.NOT_FOUND, "execute", "Budget ledger missing"
-            )
-        decision = snapshot.value.authorize(
+        decision = BudgetManager(
+            self.ledger, request.ledger_reference, self.clock, self.approvals
+        ).authorize(
             request.estimated_cost,
-            CostCategory.AI,
             CostContext(
                 request.operation_reference,
                 OperationType.TASK_EXECUTION,
@@ -105,9 +104,6 @@ class ExecuteTask:
                 opportunity.reference,
                 request.spending_approval,
             ),
-        )
-        self.ledger.commit(
-            BudgetCommit(request.ledger_reference, decision.budget, snapshot.revision, decision)
         )
         if decision.status == AuthorizationStatus.DENIED:
             waiting = save(self.opportunities, previous, opportunity.wait_for_budget(decision))

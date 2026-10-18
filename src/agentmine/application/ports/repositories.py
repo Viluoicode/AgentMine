@@ -78,12 +78,18 @@ class SubmissionRepository(Protocol):
     def save_request(self, request: SubmissionRequest) -> None: ...
 
     def claim_request(self, request: SubmissionRequest) -> bool:
-        """Atomically create intent and grant dispatch once; identical retries return False."""
+        """Claim once per ID AND deliverable reference/version, across modes/targets.
+
+        Identical retry returns False; a different ID for that version conflicts.
+        save_request must enforce the same uniqueness and prevent later dispatch.
+        """
         ...
 
     def get_request(self, reference: Reference) -> SubmissionRequest | None: ...
 
-    def record_attempt(self, result: SubmissionResult) -> None: ...
+    def record_attempt(self, result: SubmissionResult) -> None:
+        """Retain attempts; atomically reject changes to the first confirmation."""
+        ...
 
     def attempts_for(self, reference: Reference) -> tuple[SubmissionResult, ...]: ...
 

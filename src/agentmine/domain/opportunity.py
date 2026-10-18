@@ -127,7 +127,11 @@ class OpportunityState(StrEnum):
                 )
             case OpportunityState.READY_FOR_HUMAN_REVIEW:
                 return frozenset(
-                    (OpportunityState.APPROVED_FOR_SUBMISSION, OpportunityState.SKIPPED)
+                    (
+                        OpportunityState.APPROVED_FOR_SUBMISSION,
+                        OpportunityState.SKIPPED,
+                        OpportunityState.IN_PROGRESS,
+                    )
                 )
             case OpportunityState.APPROVED_FOR_SUBMISSION:
                 return frozenset((OpportunityState.SUBMITTED, OpportunityState.SKIPPED))
@@ -385,6 +389,12 @@ class Opportunity:
             raise DomainError(
                 ErrorCode.EVIDENCE_MISMATCH, "deliverable", "Deliverable execution mismatch"
             )
+        if self.qa is not None and deliverable.version <= self.qa.deliverable.version:
+            raise DomainError(
+                ErrorCode.EVIDENCE_MISMATCH,
+                "version",
+                "Rework requires a newer deliverable version",
+            )
         return self._move(OpportunityState.QA_PENDING, deliverable=deliverable)
 
     def review_qa(self, result: QAResult) -> Opportunity:
@@ -399,6 +409,10 @@ class Opportunity:
                 approval=None,
             )
         return self._move(OpportunityState.READY_FOR_HUMAN_REVIEW, qa=result)
+
+    def request_revision(self) -> Opportunity:
+        self._require_state(OpportunityState.READY_FOR_HUMAN_REVIEW)
+        return self._move(OpportunityState.IN_PROGRESS, deliverable=None, approval=None)
 
     def approve(self, approval: HumanApproval) -> Opportunity:
         if (

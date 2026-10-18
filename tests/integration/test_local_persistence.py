@@ -239,10 +239,14 @@ def test_submission_claim_is_single_owner_across_connections(tmp_path: Path) -> 
     assert reopened.get_request(request.reference) == request
     with pytest.raises(PortError):
         reopened.claim_request(replace(request, content=replace(request.content, text="changed")))
-    assert reopened.claim_request(replace(request, reference=Reference("other")))
+    with pytest.raises(PortError):
+        reopened.claim_request(replace(request, reference=Reference("other")))
     saved = replace(request, reference=Reference("saved"))
-    reopened.save_request(saved)
-    assert not reopened.claim_request(saved)
+    with pytest.raises(PortError):
+        reopened.save_request(saved)
+    separate = open_local_repositories(tmp_path / "saved.db").submissions
+    separate.save_request(saved)
+    assert not separate.claim_request(saved)
 
 
 def test_submission_receipts_attempts_outcomes_survive_reopen(tmp_path: Path) -> None:

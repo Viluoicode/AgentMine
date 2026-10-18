@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 from agentmine.application.contracts import (
     ai,
     data,
+    operator,
     opportunities,
     records,
     research,
@@ -23,6 +24,7 @@ from agentmine.application.contracts import (
 )
 from agentmine.application.errors import PortError, PortErrorCode
 from agentmine.domain import (
+    approval,
     budget,
     economics,
     eligibility,
@@ -44,6 +46,8 @@ class SnapshotCodec:
 
     def __init__(self) -> None:
         modules = (
+            approval,
+            operator,
             qa_contracts,
             qa_domain,
             ai,
@@ -186,7 +190,28 @@ class SnapshotCodec:
         cls = self._types[node["type"]]
         if not is_dataclass(cls):
             raise ValueError("Dataclass required")
+        # Narrow additive migration for pre-5B submission snapshots only.
+        legacy_defaults: dict[str, object] = {}
+        if cls is submission.SubmissionRequest:
+            legacy_defaults = {"mode": submission.SubmissionMode.API}
+        elif cls is submission.SubmissionResult:
+            legacy_defaults = {
+                "external_submission_id": None,
+                "marketplace_response": None,
+                "external_url": None,
+                "manual_package": None,
+                "recorded_by": None,
+            }
         definitions = fields(cls)
+        expected_fields = {field.name for field in definitions}
+        if legacy_defaults and set(node["fields"]) == expected_fields - legacy_defaults.keys():
+            node = dict(
+                node,
+                fields={
+                    **node["fields"],
+                    **{key: self._encode(value) for key, value in legacy_defaults.items()},
+                },
+            )
         if set(node["fields"]) != {field.name for field in definitions}:
             raise ValueError("Snapshot field mismatch")
         decoded = {name: self._decode(value) for name, value in node["fields"].items()}

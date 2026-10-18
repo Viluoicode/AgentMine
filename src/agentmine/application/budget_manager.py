@@ -3,14 +3,16 @@
 from dataclasses import dataclass, replace
 from datetime import datetime
 
+from agentmine.application.approval_guard import ApprovalGuard
 from agentmine.application.contracts.records import BudgetCommit, Versioned
 from agentmine.application.errors import PortError, PortErrorCode
+from agentmine.application.ports.approval import ApprovalRepository
 from agentmine.application.ports.repositories import CostLedgerRepository
 from agentmine.application.ports.services import Clock
 from agentmine.domain.budget import AuthorizationDecision, Budget, BudgetAuthorization
 from agentmine.domain.finance import CostCategory
 from agentmine.domain.money import Money
-from agentmine.domain.spending import AuthorizationStatus, CostContext, CostRecord
+from agentmine.domain.spending import AuthorizationStatus, BudgetReason, CostContext, CostRecord
 from agentmine.domain.values import Reference
 
 
@@ -19,6 +21,7 @@ class BudgetManager:
     ledger: CostLedgerRepository
     ledger_reference: Reference
     clock: Clock
+    approvals: ApprovalRepository | None = None
 
     def _load(self) -> Versioned[Budget]:
         snapshot = self.ledger.get(self.ledger_reference)
@@ -30,9 +33,30 @@ class BudgetManager:
         self, estimated_cost: Money, context: CostContext, category: CostCategory = CostCategory.AI
     ) -> AuthorizationDecision:
         snapshot = self._load()
+        if context.human_approval is not None:
+            if self.approvals is None:
+                raise PortError(
+                    PortErrorCode.CONFLICT, "approval", "Persisted operator approval required"
+                )
+            ApprovalGuard(self.approvals, self.clock).require_spending(
+                context.human_approval, self.ledger_reference, estimated_cost, category, context
+            )
         decision = snapshot.value.authorize(
             estimated_cost, category, replace(context, occurred_at=self.clock.now())
         )
+        # A previously reserved operation must respect a newly lowered approval threshold.
+        if (
+            decision.status == AuthorizationStatus.AUTHORIZED
+            and context.human_approval is None
+            and estimated_cost.amount > snapshot.value.policy.human_approval_cost_threshold.amount
+        ):
+            decision = AuthorizationDecision(
+                decision.request,
+                AuthorizationStatus.REQUIRES_HUMAN_APPROVAL,
+                BudgetReason.HUMAN_APPROVAL,
+                decision.mode,
+                snapshot.value,
+            )
         self.ledger.commit(
             BudgetCommit(self.ledger_reference, decision.budget, snapshot.revision, decision)
         )

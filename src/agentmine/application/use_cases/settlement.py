@@ -3,8 +3,10 @@
 from dataclasses import dataclass
 
 from agentmine.application.contracts.submission import (
+    ManualSubmissionPackage,
     PaymentVerificationRequest,
     SubmissionAttemptStatus,
+    SubmissionMode,
     SubmissionRequest,
     SubmissionResult,
 )
@@ -27,6 +29,7 @@ from agentmine.application.use_cases.context import (
     require_state,
     save,
 )
+from agentmine.application.use_cases.submission_result import retain_result
 from agentmine.domain.opportunity import Opportunity, OpportunityState
 from agentmine.domain.values import Reference
 
@@ -36,24 +39,35 @@ class SubmitTask:
     opportunities: OpportunityRepository
     executions: ExecutionRepository
     submissions: SubmissionRepository
-    gateway: SubmissionGateway
+    gateway: SubmissionGateway | None
     source: OpportunitySource
     clock: Clock
 
-    def execute(self, reference: Reference, submission_reference: Reference) -> SubmissionResult:
+    def execute(
+        self,
+        reference: Reference,
+        submission_reference: Reference,
+        mode: SubmissionMode = SubmissionMode.API,
+    ) -> SubmissionResult:
         previous = load(self.opportunities, reference)
         opportunity = previous.value
+        original = self.submissions.get_request(submission_reference)
+        if original is not None and original.mode != mode:
+            raise PortError(PortErrorCode.CONFLICT, "submit", "Submission mode changed")
         if opportunity.submission is not None:
             if opportunity.submission.reference != submission_reference:
                 raise PortError(
                     PortErrorCode.CONFLICT, "submit", "Already submitted with another identity"
                 )
+            for attempt in self.submissions.attempts_for(submission_reference):
+                if attempt.submission == opportunity.submission:
+                    return attempt
             return SubmissionResult(
                 submission_reference,
                 SubmissionAttemptStatus.CONFIRMED,
                 self.clock.now(),
                 opportunity.submission,
-                "Already confirmed",
+                "Legacy confirmed receipt; metadata unavailable",
             )
         require_state(opportunity, OpportunityState.APPROVED_FOR_SUBMISSION)
         assert (
@@ -72,10 +86,27 @@ class SubmitTask:
             opportunity.approval,
             opportunity.approval.target,
             content,
+            mode,
         )
-        original = self.submissions.get_request(submission_reference)
         if original is not None and original != request:
             raise PortError(PortErrorCode.CONFLICT, "submit", "Submission intent changed")
+        attempts = self.submissions.attempts_for(submission_reference)
+        ordered = sorted(
+            attempts, key=lambda item: item.status != SubmissionAttemptStatus.CONFIRMED
+        )
+        for attempt in ordered:
+            if (
+                attempt.status
+                in (
+                    SubmissionAttemptStatus.CONFIRMED,
+                    SubmissionAttemptStatus.FAILED,
+                    SubmissionAttemptStatus.UNSUPPORTED,
+                )
+                or attempt.manual_package is not None
+            ):
+                return retain_result(
+                    self.opportunities, self.submissions, self.clock, previous, request, attempt
+                )
         confirmed = self.submissions.get(submission_reference)
         if confirmed is not None:
             result = SubmissionResult(
@@ -83,40 +114,81 @@ class SubmitTask:
                 SubmissionAttemptStatus.CONFIRMED,
                 self.clock.now(),
                 confirmed,
-                "Recovered confirmed receipt",
+                "Recovered legacy confirmed receipt",
             )
         else:
-            if original is None:
+            if mode == SubmissionMode.API and self.gateway is None:
+                raise PortError(
+                    PortErrorCode.UNSUPPORTED, "submit", "API gateway is not configured"
+                )
+            if original is None and mode != SubmissionMode.UNSUPPORTED:
                 refresh(self.opportunities, self.source, self.clock, reference)
             claimed = self.submissions.claim_request(request)
-            # Existing intents reconcile even if now expired: the effect may already exist.
-            try:
-                result = (
-                    self.gateway.submit(request) if claimed else self.gateway.reconcile(request)
+            if mode == SubmissionMode.UNSUPPORTED:
+                result = SubmissionResult(
+                    submission_reference,
+                    SubmissionAttemptStatus.UNSUPPORTED,
+                    self.clock.now(),
+                    None,
+                    "No supported submission mechanism; no external action",
                 )
-            except PortError:
-                self.submissions.record_attempt(
-                    SubmissionResult(
-                        submission_reference,
-                        SubmissionAttemptStatus.UNKNOWN,
-                        self.clock.now(),
-                        None,
-                        "Adapter failure; reconcile intent",
+            elif mode == SubmissionMode.MANUAL:
+                package = ManualSubmissionPackage(
+                    request.reference,
+                    request.target,
+                    request.deliverable,
+                    request.content,
+                    (
+                        "Check the approved destination and opportunity deadline/open status.",
+                        "Check for a receipt first. Never resend an uncertain submission.",
+                        "Send the exact approved content through the supported manual interface.",
+                        "Retain send time, external ID, response and URL when available.",
+                        "Record the receipt. Acceptance and payment require separate evidence.",
+                    ),
+                )
+                result = SubmissionResult(
+                    submission_reference,
+                    SubmissionAttemptStatus.HUMAN_ACTION_REQUIRED,
+                    self.clock.now(),
+                    None,
+                    "Operator submission required; package creation is not submission",
+                    manual_package=package,
+                )
+            else:
+                assert self.gateway is not None
+                try:
+                    result = (
+                        self.gateway.submit(request) if claimed else self.gateway.reconcile(request)
                     )
-                )
-                raise
-        if result.reference != submission_reference or result.observed_at > self.clock.now():
-            raise PortError(PortErrorCode.INVALID_RESPONSE, "submit", "Submission result mismatch")
-        updated: Opportunity | None = None
-        if result.submission is not None:
-            if result.submission.target != request.target:
-                raise PortError(PortErrorCode.INVALID_RESPONSE, "submit", "Receipt target mismatch")
-            updated = opportunity.submit(result.submission)
-        self.submissions.record_attempt(result)
-        if result.submission is not None and updated is not None:
-            self.submissions.save(result.submission)
-            save(self.opportunities, previous, updated)
-        return result
+                    if result.manual_package is not None:
+                        raise PortError(
+                            PortErrorCode.INVALID_RESPONSE,
+                            "submit",
+                            "API gateway cannot switch to manual mode",
+                        )
+                    return retain_result(
+                        self.opportunities, self.submissions, self.clock, previous, request, result
+                    )
+                except Exception as error:
+                    self.submissions.record_attempt(
+                        SubmissionResult(
+                            submission_reference,
+                            SubmissionAttemptStatus.UNKNOWN,
+                            self.clock.now(),
+                            None,
+                            "Dispatch or persistence unresolved; reconcile without resending",
+                        )
+                    )
+                    if isinstance(error, PortError):
+                        raise
+                    raise PortError(
+                        PortErrorCode.OUTCOME_UNKNOWN,
+                        "submit",
+                        "Submission unresolved; reconcile intent",
+                    ) from None
+        return retain_result(
+            self.opportunities, self.submissions, self.clock, previous, request, result
+        )
 
 
 @dataclass(frozen=True, slots=True)

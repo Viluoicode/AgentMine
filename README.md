@@ -158,3 +158,13 @@ Milestone 4D adds [Deliverable QA](docs/deliverable-qa.md): deterministic checks
 Research/Data validation next, and budget-authorized AI review only for semantic requirements.
 Reports preserve reasons and evidence. PASS means READY_FOR_HUMAN_REVIEW; human approval
 and submission remain separate. No dependencies or live integrations were added.
+
+Milestone 5A adds the [human approval boundary](docs/human-approval.md): immutable operator
+review packages, APPROVE/REJECT/REQUEST_REVISION audit, scoped spending consent and guarded
+rework. Approval never automatically submits. One local operator; no IAM, wallet or sensitive
+account executor is added.
+
+Milestone 5B adds [Submission System](docs/submission-system.md): API/MANUAL/UNSUPPORTED
+modes, approved manual packages, operator receipt recording and retained response metadata.
+Retries reuse receipts or reconcile; changing IDs cannot resend the same deliverable version.
+All modes require human approval. No production marketplace POST adapter or live send is added.

@@ -187,3 +187,21 @@ Identical writes are idempotent; changed payloads under an existing ID conflict.
 adapters must enforce this across callers, not just inside one process. SQLiteQAJournal
 implements these responsibilities. DeliverableQA owns ordering, budget checks and lifecycle
 coordination; the domain owns report outcome/order invariants. See [Deliverable QA](deliverable-qa.md).
+
+## Operator approvals (Milestone 5A)
+
+Application owns ApprovalRepository: immutable OperatorReview snapshots and one atomic,
+immutable ApprovalDecision per review. Identical retries are idempotent; changed content or
+competing decisions conflict. SQLiteApprovalRepository implements the port. ApprovalGuard
+checks recorded scopes; BudgetManager enforces spending consent before dispatch. The
+operator entry point/store remain trusted, with one operator identity and no multi-user IAM.
+See [human approval](human-approval.md) for composition, recovery and limitations.
+
+## Milestone 5B submission contracts
+
+SubmissionRequest includes an immutable mode (API by default). SubmissionResult retains
+optional external ID/response/URL, pending manual package and recording operator. Submission
+Repository must prevent duplicate intents under different IDs for the same deliverable
+reference/version and atomically reject conflicting confirmations. SubmissionGateway.reconcile
+is strictly observation-only. SQLite and test fakes enforce the stronger repository contract.
+See [Submission System](submission-system.md) for migration, recovery and live prerequisites.

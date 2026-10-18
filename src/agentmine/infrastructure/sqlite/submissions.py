@@ -3,7 +3,12 @@
 import hashlib
 from dataclasses import dataclass
 
-from agentmine.application.contracts.submission import SubmissionRequest, SubmissionResult
+from agentmine.application.contracts.submission import (
+    SubmissionAttemptStatus,
+    SubmissionRequest,
+    SubmissionResult,
+)
+from agentmine.application.errors import PortError, PortErrorCode
 from agentmine.domain.values import Reference
 from agentmine.domain.work import Outcome, Submission
 from agentmine.infrastructure.sqlite.database import IndexValues, SQLiteDatabase, composite_key
@@ -14,11 +19,34 @@ class SQLiteSubmissionRepository:
     database: SQLiteDatabase
 
     def save_request(self, request: SubmissionRequest) -> None:
-        self.database.immutable("submission_request", request.reference.value, request)
+        self.claim_request(request)
 
     def claim_request(self, request: SubmissionRequest) -> bool:
-        # Existing save_request also prevents dispatch, as required by intent semantics.
-        return self.database.immutable("submission_request", request.reference.value, request)
+        with self.database.transaction(write=True) as connection:
+            rows = connection.execute(
+                "SELECT * FROM snapshots WHERE kind = ?", ("submission_request",)
+            ).fetchall()
+            for row in rows:
+                other = self.database.decode(row, SubmissionRequest).value
+                if other.reference == request.reference:
+                    if other != request:
+                        raise PortError(
+                            PortErrorCode.CONFLICT, "submit", "Submission identity changed"
+                        )
+                    return False
+                if (other.deliverable.reference, other.deliverable.version) == (
+                    request.deliverable.reference,
+                    request.deliverable.version,
+                ):
+                    raise PortError(
+                        PortErrorCode.CONFLICT,
+                        "submit",
+                        "Deliverable version already has a submission intent",
+                    )
+            self.database.write(
+                connection, "submission_request", request.reference.value, request, 1, IndexValues()
+            )
+            return True
 
     def get_request(self, reference: Reference) -> SubmissionRequest | None:
         result = self.database.get("submission_request", reference.value, SubmissionRequest)
@@ -30,8 +58,15 @@ class SQLiteSubmissionRepository:
                 "SELECT * FROM snapshots WHERE kind = 'submission_attempt' AND parent = ?",
                 (result.reference.value,),
             ).fetchall()
-            if any(self.database.decode(row, SubmissionResult).value == result for row in rows):
+            existing = tuple(self.database.decode(row, SubmissionResult).value for row in rows)
+            if result in existing:
                 return
+            if result.status == SubmissionAttemptStatus.CONFIRMED and any(
+                item.status == SubmissionAttemptStatus.CONFIRMED for item in existing
+            ):
+                raise PortError(
+                    PortErrorCode.CONFLICT, "receipt", "Confirmation already recorded differently"
+                )
             digest = hashlib.sha256(self.database.codec.dumps(result).encode()).hexdigest()
             self.database.write(
                 connection,
