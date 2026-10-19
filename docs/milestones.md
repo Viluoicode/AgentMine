@@ -202,3 +202,13 @@ snapshot serialization preserves SQLite compatibility. Optional boto3/Moto depen
 no Domain/Application contract changes or AWS deployment. See
 [keys, indexes, idempotency, setup and limits](dynamodb-persistence.md) and
 [ADR 0017](adr/0017-dynamodb-persistence.md).
+
+## Milestone 6C: AWS Lambda Runtime Adapter
+
+Four two-argument callables parse bounded versioned commands/custom EventBridge envelopes,
+resolve dependencies per invocation, invoke existing application use cases and map compact
+results. Correlation IDs are logged safely; failures raise sanitized exceptions for async
+visibility. Application/Domain contracts and business rules are unchanged. No paid execution,
+approval bypass, workflow scheduler, production connector assumptions or AWS deployment.
+See [runtime wiring, event contracts, retries and limits](lambda-runtime.md) and
+[ADR 0018](adr/0018-lambda-runtime.md).

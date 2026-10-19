@@ -193,3 +193,9 @@ existing Domain/Application contracts. Access-pattern keys, sparse GSIs, transac
 budget/audit writes and submission/payment uniqueness guards are tested with Moto's
 in-process DynamoDB emulator. Install `.[dev,dynamodb-test]` to run these tests; without
 the optional dependencies they skip explicitly. No live AWS table or deployment is created.
+
+Milestone 6C adds [thin Lambda runtime handlers](docs/lambda-runtime.md) for discovery,
+normalization, outcome tracking and payment verification. Explicit dependency factories
+compose existing use cases; versioned events, correlation logs and sanitized raised errors
+stay at the presentation/runtime boundary. Tests use fakes and DynamoDB emulation. No new
+dependency or AWS deployment; production external adapter wiring remains explicit.

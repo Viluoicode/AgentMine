@@ -11,6 +11,8 @@ def forbidden_imports(source: str, layer: str) -> list[str]:
     allowed: tuple[str, ...] = (f"agentmine.{layer}",)
     if layer == "application":
         allowed += ("agentmine.domain",)
+    if layer == "presentation":
+        allowed += ("agentmine.application", "agentmine.domain")
     violations: list[str] = []
     for node in ast.walk(ast.parse(source)):
         modules: list[str] = []
@@ -34,7 +36,7 @@ def forbidden_imports(source: str, layer: str) -> list[str]:
     return violations
 
 
-@pytest.mark.parametrize("layer", ["domain", "application"])
+@pytest.mark.parametrize("layer", ["domain", "application", "presentation"])
 def test_inner_layers_obey_import_direction(layer: str) -> None:
     root = Path(__file__).resolve().parents[2] / "src" / "agentmine" / layer
     sources = list(root.rglob("*.py"))
@@ -62,3 +64,10 @@ def test_application_guard_detects_forbidden_imports(source: str) -> None:
 def test_application_can_depend_on_domain_but_domain_cannot_depend_on_application() -> None:
     assert not forbidden_imports("from agentmine.domain.work import Task", "application")
     assert forbidden_imports("from agentmine.application.ports import services", "domain")
+
+
+def test_presentation_cannot_construct_infrastructure_or_bootstrap() -> None:
+    assert forbidden_imports("from agentmine.infrastructure.dynamodb import store", "presentation")
+    assert forbidden_imports(
+        "from agentmine.bootstrap.dynamodb import dynamodb_repositories", "presentation"
+    )
