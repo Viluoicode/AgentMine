@@ -11,3 +11,11 @@ Milestone 3A exercises real temporary SQLite files without network or paid API c
 Run `python -m pytest tests/integration -p no:cacheprovider` with the project environment.
 Pytest needs access to its temporary directory. Service/provider fakes are reused from
 `tests/unit/application` through the test-only pythonpath setting in pyproject.toml.
+
+Milestone 6B adds `test_dynamodb_persistence.py`. Install the optional
+`.[dev,dynamodb-test]` extras to run it against Moto's in-process DynamoDB emulator.
+It uses dummy credentials and the suite-wide network block; no Docker daemon or AWS
+account is required. Without the extras, this module explicitly skips. It exercises
+the same application workflow with DynamoDB repositories, plus conditional writes,
+transaction rollback, pagination, operational queries, worker journals and financial
+uniqueness. See [schema, commands and test limits](../../docs/dynamodb-persistence.md).

@@ -187,3 +187,9 @@ and net value. SQLite persistence and worker journals survive reopen/retries. Bu
 exhaustion preserves discovery; restored work is refreshed/revalidated before resuming.
 Run `python -m pytest tests/e2e -q -s -p no:cacheprovider` for execution reports.
 All external effects are fixtures, external API spend is $0, and no AWS deployment starts.
+
+Milestone 6B adds optional [DynamoDB persistence](docs/dynamodb-persistence.md), preserving
+existing Domain/Application contracts. Access-pattern keys, sparse GSIs, transactional
+budget/audit writes and submission/payment uniqueness guards are tested with Moto's
+in-process DynamoDB emulator. Install `.[dev,dynamodb-test]` to run these tests; without
+the optional dependencies they skip explicitly. No live AWS table or deployment is created.

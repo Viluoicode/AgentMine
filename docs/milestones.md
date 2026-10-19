@@ -190,3 +190,15 @@ exhaustion derives SCOUT_ONLY without stopping discovery, and resumed work requi
 fresh availability/eligibility/scoring. Expired/closed/ineligible work cannot resume.
 No Domain/Application changes, dependencies, production API calls or AWS deployment.
 See [execution report, commands and limitations](local-e2e.md).
+
+## Milestone 6B: DynamoDB Persistence Adapter
+
+Access-pattern single-table persistence implements existing opportunity, evaluation,
+execution, submission, ledger, approval and historical repository ports plus worker/QA
+journals. Conditional transactions preserve revisions, budget audit, submission ownership
+and unique verified-payment attribution. Operational GSIs are eventually consistent;
+authoritative histories, ownership and budget decisions use base-table reads. Shared
+snapshot serialization preserves SQLite compatibility. Optional boto3/Moto dependencies;
+no Domain/Application contract changes or AWS deployment. See
+[keys, indexes, idempotency, setup and limits](dynamodb-persistence.md) and
+[ADR 0017](adr/0017-dynamodb-persistence.md).
