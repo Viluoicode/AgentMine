@@ -1,0 +1,9 @@
+{
+  "provenance": "Synthetic AgentMine port fixture; not a marketplace API capture or real bounty.",
+  "title": "Summarize and normalize the supplied observation dataset",
+  "requirements": "Use supplied evidence, preserve provenance, and return a report or CSV/JSON.",
+  "potential_reward": "100",
+  "accepted_reward": "90",
+  "verified_reward": "85",
+  "currency": "USD"
+}

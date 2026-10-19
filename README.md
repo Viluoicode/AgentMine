@@ -180,3 +180,10 @@ observations joining stored forecasts, attributed costs, attempt/skip decisions 
 outcomes. Read-only statistics cover Research/Data acceptance, cost prediction errors and
 source cohorts, with latest/as-of deduplication. Capture is explicitly invoked. No model is
 trained and production scoring behavior is unchanged; no dependency is added.
+
+Milestone 6A proves the [local end-to-end flow](docs/local-e2e.md) for Research and Data
+through QA, explicit simulated human approval, fake submission/payment, verified revenue
+and net value. SQLite persistence and worker journals survive reopen/retries. Budget
+exhaustion preserves discovery; restored work is refreshed/revalidated before resuming.
+Run `python -m pytest tests/e2e -q -s -p no:cacheprovider` for execution reports.
+All external effects are fixtures, external API spend is $0, and no AWS deployment starts.

@@ -1,0 +1,1 @@
+This synthetic local dataset contains two observations: Ada has 2 samples and Bob has 3 samples.

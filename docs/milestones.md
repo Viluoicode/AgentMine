@@ -180,3 +180,13 @@ pre-attempt forecasts, latest/as-of reporting and SQLite concurrency/rollback gu
 Statistics expose Research/Data attempts/acceptance, source outcomes and per-currency cost
 averages/errors with sample counts. No training or production scoring change. See
 [Historical Learning Dataset](historical-learning.md) and [ADR 0016](adr/0016-historical-learning.md).
+
+## Milestone 6A: Local End-to-End AgentMine Flow
+
+Six offline acceptance scenarios compose real SQLite, Research/Data workers, QA and
+operator approval with fixture sources, MockLLMProvider and fake gateway/verifier.
+Research and Data reach PAID with explicit verified-revenue/net-value assertions;
+exhaustion derives SCOUT_ONLY without stopping discovery, and resumed work requires
+fresh availability/eligibility/scoring. Expired/closed/ineligible work cannot resume.
+No Domain/Application changes, dependencies, production API calls or AWS deployment.
+See [execution report, commands and limitations](local-e2e.md).
