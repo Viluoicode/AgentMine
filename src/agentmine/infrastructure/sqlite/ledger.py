@@ -17,6 +17,15 @@ from agentmine.infrastructure.sqlite.database import IndexValues, SQLiteDatabase
 class SQLiteCostLedgerRepository:
     database: SQLiteDatabase
 
+    def count(self) -> int:
+        """Local composition guard for the single-ledger operator interface."""
+        with self.database.transaction() as connection:
+            return int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM snapshots WHERE kind = 'budget'"
+                ).fetchone()[0]
+            )
+
     def get(self, ledger_reference: Reference) -> Versioned[Budget] | None:
         return self.database.get("budget", ledger_reference.value, Budget)
 

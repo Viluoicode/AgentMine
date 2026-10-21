@@ -141,7 +141,7 @@ deterministic-QA insufficiency. See [LLM setup and limitations](docs/llm-infrast
 The optional `bedrock` extra supplies boto3; base installation remains dependency-free.
 No live Bedrock invocation or automatic startup integration is enabled.
 
-AWS Lambda and DynamoDB remain future infrastructure choices. See [milestones](docs/milestones.md) and
+AWS Lambda and DynamoDB adapters are implemented in milestones 6B/6C; deployment remains pending. See [milestones](docs/milestones.md) and
 [ADR directory](docs/adr/README.md).
 
 Milestone 4B adds [ResearchWorker](docs/research-worker.md): validated Research plans,
@@ -199,3 +199,18 @@ normalization, outcome tracking and payment verification. Explicit dependency fa
 compose existing use cases; versioned events, correlation logs and sanitized raised errors
 stay at the presentation/runtime boundary. Tests use fakes and DynamoDB emulation. No new
 dependency or AWS deployment; production external adapter wiring remains explicit.
+
+Milestone 6D provides the [AWS architecture review and diagrams](docs/aws-architecture-review.md).
+Lambda, DynamoDB and Bedrock remain the three primary workload services; IAM is required
+supporting security infrastructure. Local SQLite/Mock operation remains supported.
+The review identifies durable LLM-journal/raw-archive and deployment-composition gaps;
+it adds no service, dependency or runtime behavior.
+
+Milestone 7A adds the [local operator CLI](docs/operator-interface.md): mode, monthly
+AI budget, lifecycle queues, separated forecast/verified economics and audited
+APPROVE/REJECT/REQUEST_REVISION commands. Run
+`python -m agentmine.bootstrap.operator --help`. In PowerShell, create a local ledger with
+`python -m agentmine.bootstrap.operator --db .tmp/agentmine.sqlite3 --ledger local workspace init --currency USD --monthly-ai-budget 20 --daily-ai-budget 5 --max-cost-per-task 4 --human-approval-cost-threshold 1`, then view it with
+`python -m agentmine.bootstrap.operator --db .tmp/agentmine.sqlite3 --ledger local dashboard`.
+No frontend dependency or external submission. Submission approval requires fresh
+source status; offline defaults fail closed. See the guide for explicit source setup.

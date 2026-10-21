@@ -38,3 +38,7 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0017: Access-pattern DynamoDB persistence](0017-dynamodb-persistence.md)
 
 - [0018: Thin Lambda runtime callables](0018-lambda-runtime.md)
+
+- [0019: Minimal local operator interface](0019-local-operator-interface.md)
+
+- [0020: Local workspace initialization and ingestion](0020-local-workspace-bootstrap.md)

@@ -212,3 +212,29 @@ visibility. Application/Domain contracts and business rules are unchanged. No pa
 approval bypass, workflow scheduler, production connector assumptions or AWS deployment.
 See [runtime wiring, event contracts, retries and limits](lambda-runtime.md) and
 [ADR 0018](adr/0018-lambda-runtime.md).
+
+## Milestone 6D: AWS Architecture Review
+
+Reviewed dependency boundaries, adapter substitution, service sufficiency and cloud
+readiness. Lambda/DynamoDB/Bedrock suffice as primary services for a bounded,
+operator-triggered workshop, with IAM as required security foundation. Durable shared
+LLM dispatch/raw captures and production wiring remain prerequisites for live cloud work.
+See [decision report, diagrams and architecture gate](aws-architecture-review.md).
+Documentation only: no infrastructure, dependencies or business behavior added.
+
+## Milestone 7A: Operator Interface
+
+Minimal local CLI exposes operating mode, monthly AI budget/commitments, opportunity
+and execution queues, separate forecasts and per-currency verified/recorded economics.
+Review commands reuse immutable 5A snapshots and audited decisions without submitting.
+A new application-owned read port has a consistent single-ledger SQLite implementation;
+Domain and existing repository/workflow contracts are unchanged. No dependency or
+cloud deployment. Offline tests cover financial boundaries and persistent operator
+controls. See [usage, semantics and limits](operator-interface.md) and
+[ADR 0019](adr/0019-local-operator-interface.md).
+
+Operator workspace follow-up: `workspace init` explicitly creates the initial budget
+ledger with idempotent same-policy retries. `workspace discover` opts into the existing
+Superteam read adapter and coordinates discovery/normalization through application use
+cases, retaining raw source evidence and stable IDs. No synthetic earnings, guessed
+eligibility, paid execution or submission. See [ADR 0020](adr/0020-local-workspace-bootstrap.md).
