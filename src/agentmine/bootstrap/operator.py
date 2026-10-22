@@ -10,7 +10,11 @@ from pathlib import Path
 from agentmine.application.errors import PortError
 from agentmine.application.ports.services import Clock, OpportunitySource
 from agentmine.application.use_cases.dashboard import GetOperatorDashboard
-from agentmine.application.use_cases.operator import DecideOperatorReview, PrepareOperatorReview
+from agentmine.application.use_cases.operator import (
+    DecideOperatorReview,
+    GetOperatorReview,
+    PrepareOperatorReview,
+)
 from agentmine.application.use_cases.planning import DiscoverOpportunities, NormalizeOpportunity
 from agentmine.application.use_cases.workspace import (
     InitializeWorkspace,
@@ -69,8 +73,7 @@ def compose_operator(
         GetOperatorDashboard(workspace, clock),
         PrepareOperatorReview(opportunities, executions, ledger, approvals, clock),
         DecideOperatorReview(opportunities, executions, ledger, approvals, source, clock, operator),
-        approvals,
-        opportunities,
+        GetOperatorReview(approvals),
         ledger_reference,
         InitializeWorkspace(ledger),
         LoadWorkspaceOpportunities(

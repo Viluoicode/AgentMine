@@ -109,10 +109,10 @@ def test_all_decisions_persist_and_retry_without_submission(
             "Read evidence",
         )
         assert code == 0 and '"submitted": false' in text
-    stored = services.approvals.get_decision(Reference("review"))
+    stored = services.get_review.execute(Reference("review")).decision
     assert stored is not None and stored.actor == Reference("alice")
     assert stored.reason == "Read evidence" and stored.decided_at == world.clock.now()
-    op = services.opportunities.get(world.reference)
+    op = open_local_repositories(path).opportunities.get(world.reference)
     assert op is not None and op.value.state == state and op.value.submission is None
     assert world.gateway.submits == 0
     code, text = invoke(services, "show-review", "--review-id", "review")
@@ -138,7 +138,7 @@ def test_approval_guards_remain_effective(world: World, tmp_path: Path, failure:
         assert original is not None
         ledger.commit(BudgetCommit(Reference("ledger"), original.value, original.revision, None))
     assert invoke(services, "decide", "--review-id", "review", "--decision", "APPROVE")[0] == 1
-    assert services.approvals.get_decision(Reference("review")) is None
+    assert services.get_review.execute(Reference("review")).decision is None
 
 
 def test_accepted_not_paid_and_all_cost_categories(world: World, tmp_path: Path) -> None:

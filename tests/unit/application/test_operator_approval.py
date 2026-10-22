@@ -12,7 +12,11 @@ from agentmine.application.budget_manager import BudgetManager
 from agentmine.application.contracts.records import Versioned
 from agentmine.application.errors import ApplicationError, PortError
 from agentmine.application.use_cases.execution import RunQA
-from agentmine.application.use_cases.operator import DecideOperatorReview, PrepareOperatorReview
+from agentmine.application.use_cases.operator import (
+    DecideOperatorReview,
+    GetOperatorReview,
+    PrepareOperatorReview,
+)
 from agentmine.domain.approval import ApprovalAction, ApprovalScope, OperatorDecision
 from agentmine.domain.errors import DomainError
 from agentmine.domain.finance import CostCategory
@@ -61,6 +65,44 @@ def ready(world: World) -> ApprovalScope:
         deliverable.content_reference,
         deliverable,
     )
+
+
+def test_submission_review_preparation_and_read_are_application_owned(world: World) -> None:
+    approvals = MemoryApprovals()
+    scope = ready(world)
+    command = prepare(world, approvals)
+    review = command.for_submission(
+        Reference("review"), world.reference, Reference("ledger"), scope.destination
+    )
+    assert review.scope == scope
+    assert (
+        command.for_submission(
+            Reference("review"), world.reference, Reference("ledger"), scope.destination
+        )
+        == review
+    )
+    query = GetOperatorReview(approvals)
+    assert query.execute(review.reference).review == review
+    assert query.execute(review.reference).decision is None
+    with pytest.raises(PortError):
+        command.for_submission(
+            Reference("review"), world.reference, Reference("ledger"), Reference("changed")
+        )
+    decision = decide(world, approvals).execute(review.reference, OperatorDecision.APPROVE)
+    assert query.execute(review.reference).decision == decision
+    assert world.gateway.submits == 0
+
+
+def test_missing_submission_deliverable_and_review_fail_in_application(world: World) -> None:
+    approvals = MemoryApprovals()
+    plan(world)
+    with pytest.raises(PortError, match="Deliverable required"):
+        prepare(world, approvals).for_submission(
+            Reference("review"), world.reference, Reference("ledger"), Reference("destination")
+        )
+    assert not approvals.reviews
+    with pytest.raises(PortError, match="Review missing"):
+        GetOperatorReview(approvals).execute(Reference("missing"))
 
 
 @pytest.mark.parametrize("decision", list(OperatorDecision))

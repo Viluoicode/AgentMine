@@ -3,7 +3,7 @@
 import logging
 from dataclasses import dataclass
 
-from agentmine.application.contracts.operator import OperatorReview
+from agentmine.application.contracts.operator import OperatorReview, RecordedOperatorReview
 from agentmine.application.errors import PortError, PortErrorCode
 from agentmine.application.ports.approval import ApprovalRepository
 from agentmine.application.ports.repositories import (
@@ -37,6 +37,25 @@ class PrepareOperatorReview:
     ledger: CostLedgerRepository
     approvals: ApprovalRepository
     clock: Clock
+
+    def for_submission(
+        self,
+        reference: Reference,
+        opportunity_reference: Reference,
+        ledger_reference: Reference,
+        destination: Reference,
+    ) -> OperatorReview:
+        """Resolve current deliverable and bind the operator's submission request."""
+        opportunity = load(self.opportunities, opportunity_reference).value
+        if opportunity.deliverable is None:
+            raise PortError(PortErrorCode.CONFLICT, "review", "Deliverable required")
+        scope = ApprovalScope(
+            ApprovalAction.EXTERNAL_SUBMISSION,
+            destination,
+            opportunity.deliverable.content_reference,
+            opportunity.deliverable,
+        )
+        return self.execute(reference, opportunity_reference, ledger_reference, scope)
 
     def execute(
         self,
@@ -132,6 +151,17 @@ class PrepareOperatorReview:
         )
         self.approvals.save_review(review)
         return review
+
+
+@dataclass(frozen=True, slots=True)
+class GetOperatorReview:
+    approvals: ApprovalRepository
+
+    def execute(self, reference: Reference) -> RecordedOperatorReview:
+        review = self.approvals.get_review(reference)
+        if review is None:
+            raise PortError(PortErrorCode.UNAVAILABLE, "review", "Review missing")
+        return RecordedOperatorReview(review, self.approvals.get_decision(reference))
 
 
 @dataclass(frozen=True, slots=True)

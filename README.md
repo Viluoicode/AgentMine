@@ -13,6 +13,8 @@ See [Product Constitution](docs/product-constitution.md) for scope and
 [architecture](docs/architecture.md) for dependency rules.
 See the [security review](docs/security-review.md) for findings, focused fixes,
 adversarial checks and remaining deployment limits.
+See the [Clean Architecture audit](docs/clean-architecture-audit.md) for confirmed
+violations, focused fixes, dependency checks and validation results.
 
 ## Architecture principles
 

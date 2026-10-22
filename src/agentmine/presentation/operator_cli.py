@@ -10,17 +10,18 @@ from typing import TextIO
 from agentmine.application.contracts.dashboard import OperatorDashboard
 from agentmine.application.contracts.operator import OperatorReview
 from agentmine.application.contracts.opportunities import DiscoveryRequest
-from agentmine.application.errors import ApplicationError, PortError, PortErrorCode
-from agentmine.application.ports.approval import ApprovalRepository
-from agentmine.application.ports.repositories import OpportunityRepository
-from agentmine.application.use_cases.context import load
+from agentmine.application.errors import ApplicationError, PortError
 from agentmine.application.use_cases.dashboard import GetOperatorDashboard
-from agentmine.application.use_cases.operator import DecideOperatorReview, PrepareOperatorReview
+from agentmine.application.use_cases.operator import (
+    DecideOperatorReview,
+    GetOperatorReview,
+    PrepareOperatorReview,
+)
 from agentmine.application.use_cases.workspace import (
     InitializeWorkspace,
     LoadWorkspaceOpportunities,
 )
-from agentmine.domain.approval import ApprovalAction, ApprovalScope, OperatorDecision
+from agentmine.domain.approval import OperatorDecision
 from agentmine.domain.budget import BudgetPolicy, OperatingMode
 from agentmine.domain.errors import DomainError
 from agentmine.domain.money import Money
@@ -183,8 +184,7 @@ class OperatorServices:
     dashboard: GetOperatorDashboard
     prepare: PrepareOperatorReview
     decide: DecideOperatorReview
-    approvals: ApprovalRepository
-    opportunities: OpportunityRepository
+    get_review: GetOperatorReview
     ledger_reference: Reference
     initialize: InitializeWorkspace
     load_opportunities: LoadWorkspaceOpportunities
@@ -307,25 +307,17 @@ def run_command(args: argparse.Namespace, services: OperatorServices, output: Te
                     file=output,
                 )
         elif args.command == "review":
-            op = load(services.opportunities, Reference(args.opportunity)).value
-            if op.deliverable is None:
-                raise PortError(PortErrorCode.CONFLICT, "review", "Deliverable required")
-            scope = ApprovalScope(
-                ApprovalAction.EXTERNAL_SUBMISSION,
+            review = services.prepare.for_submission(
+                Reference(args.review_id),
+                Reference(args.opportunity),
+                services.ledger_reference,
                 Reference(args.destination),
-                op.deliverable.content_reference,
-                op.deliverable,
-            )
-            review = services.prepare.execute(
-                Reference(args.review_id), op.reference, services.ledger_reference, scope
             )
             print(render_review(review), file=output)
         elif args.command == "show-review":
-            stored_review = services.approvals.get_review(Reference(args.review_id))
-            if stored_review is None:
-                raise PortError(PortErrorCode.UNAVAILABLE, "review", "Review missing")
-            print(render_review(stored_review), file=output)
-            decision = services.approvals.get_decision(stored_review.reference)
+            recorded = services.get_review.execute(Reference(args.review_id))
+            print(render_review(recorded.review), file=output)
+            decision = recorded.decision
             print(
                 "Recorded decision: " + ("PENDING" if decision is None else quoted(str(decision))),
                 file=output,
