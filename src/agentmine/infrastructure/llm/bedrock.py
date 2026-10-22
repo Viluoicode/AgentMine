@@ -38,6 +38,8 @@ class ConverseClient(Protocol):
 
     def converse(self, **kwargs: object) -> object: ...
 
+    def count_tokens(self, **kwargs: object) -> object: ...
+
 
 def create_bedrock_client(settings: BedrockSettings) -> ConverseClient:
     """Explicit opt-in; uses AWS's credential chain, never copies credentials to prompts."""
@@ -93,6 +95,24 @@ class BedrockLLMProvider:
             "messages": [{"role": "user", "content": [{"text": call.user_data}]}],
             "inferenceConfig": {"maxTokens": self.settings.max_output_tokens},
         }
+        # Count the exact validated payload, including system/schema overhead. A static
+        # estimate cannot constrain attacker-controlled input length. This read-only
+        # preflight never increases the reservation or grants spending consent.
+        try:
+            counted = self.client.count_tokens(
+                modelId=request["modelId"],
+                input={"converse": {"system": request["system"], "messages": request["messages"]}},
+            )
+        except Exception:
+            raise PortError(
+                PortErrorCode.UNAVAILABLE, "llm_preflight", "Model token count unavailable"
+            ) from None
+        input_tokens = object_value(counted).get("inputTokens")
+        if type(input_tokens) is not int or input_tokens < 0:
+            raise invalid()
+        required = self.settings.pricing.cost(input_tokens, self.settings.max_output_tokens)
+        # Re-read the ledger after preflight: mode, limits or consent may have changed.
+        self.budget.require_authorized(auth, required)
         fingerprint = hashlib.sha256(
             json.dumps(
                 {

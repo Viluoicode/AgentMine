@@ -42,8 +42,20 @@ must also disable retries. Keep SDK wire/debug logging disabled.
 For evaluation/QA, call `manager.authorize(estimate, context)`, check its decision,
 and pass its authorization into the typed request. ExecuteTask already persists work
 authorization before dispatch. Bedrock rechecks it against the current ledger and
-configured estimate before calling the client. Denial/conflict never calls Bedrock.
+configured estimate before calling the client. It then uses Bedrock Runtime CountTokens
+on the exact system/messages/model and checks the reservation again against counted input
+plus the configured maximum output cost. A missing/unsupported/failed or malformed count
+fails closed before inference; there is no fallback to the static estimate. The count
+never raises a reservation or grants human approval. Policy is re-read after counting.
 QA additionally requires `deterministic_insufficient=True`.
+
+The selected SDK/model/region and runtime permissions must support CountTokens. This
+preflight sends the same minimized, safety-checked content to Bedrock as inference;
+it is not an offline tokenizer. AWS documents CountTokens as having no API charge.
+Models without Bedrock Runtime CountTokens support are deliberately unavailable through
+this adapter; no alternate endpoint, tokenizer approximation or service is introduced.
+See [AWS token-counting support and charges](https://docs.aws.amazon.com/bedrock/latest/userguide/count-tokens.html)
+and [CountTokens contract](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_CountTokens.html).
 
 ## Strict local output contracts
 
@@ -88,8 +100,14 @@ arbitrary secrets cannot be reliably recognized by pattern matching alone.
 Each paid operation must have a persisted outstanding AI authorization at least as large
 as the configured estimate. SCOUT_ONLY and current budget decisions are enforced before
 dispatch; free deterministic workflows remain unchanged. Estimates and actual usage are
-separate. Token estimates are operator-supplied, not a tokenizer-derived hard upper bound.
-A provider overrun is recorded explicitly by the existing domain accounting rules.
+separate. Static estimates are operator-supplied, but the security preflight now also
+requires funding for the exact counted input and maximum output under the configured
+tariff. This does not authenticate prices, cap unrelated AWS charges or reconcile an
+invoice. A provider overrun is still recorded explicitly by existing accounting rules.
+Preflight rejection creates no paid dispatch claim and never silently releases a
+reservation. Higher-level execution/worker journals may already have claimed work;
+their existing conservative reconciliation requirements still apply. Do not clear claims
+or invent new operation IDs to force a retry of an uncertain call.
 
 Actual cost = (input tokens × input tariff + output tokens × output tariff) / 1,000,000.
 This is usage-derived cost, not an AWS invoice reconciliation. Missing, malformed,
