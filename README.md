@@ -17,6 +17,8 @@ See the [Clean Architecture audit](docs/clean-architecture-audit.md) for confirm
 violations, focused fixes, dependency checks and validation results.
 See [resilience testing](docs/resilience-testing.md) for outage/failure scenarios,
 durable recovery regressions and the limits of safe retries.
+Start the [AgentMine AWS Workshop](docs/aws-workshop.md) for step-by-step offline
+labs on Lambda workflows, DynamoDB state and budget-gated Bedrock intelligence.
 
 ## Architecture principles
 
