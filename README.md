@@ -15,6 +15,8 @@ See the [security review](docs/security-review.md) for findings, focused fixes,
 adversarial checks and remaining deployment limits.
 See the [Clean Architecture audit](docs/clean-architecture-audit.md) for confirmed
 violations, focused fixes, dependency checks and validation results.
+See [resilience testing](docs/resilience-testing.md) for outage/failure scenarios,
+durable recovery regressions and the limits of safe retries.
 
 ## Architecture principles
 

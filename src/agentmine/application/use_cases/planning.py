@@ -47,11 +47,18 @@ class DiscoverOpportunities:
         for observation in batch.observations:
             reference = observation.opportunity.reference
             existing = self.opportunities.get(reference)
+            original = self.opportunities.get_observation(reference)
+            if original is not None and original.source_reference != observation.source_reference:
+                raise PortError(PortErrorCode.CONFLICT, "discover", "Source identity changed")
             if existing is not None:
-                original = self.opportunities.get_observation(reference)
-                if original is None or original.source_reference != observation.source_reference:
+                if original is None:
                     raise PortError(PortErrorCode.CONFLICT, "discover", "Source identity changed")
                 continue  # Rediscovery must never downgrade an advanced aggregate.
+            if original is not None:
+                # An earlier attempt may have persisted provenance but not the aggregate.
+                # Complete that write using the retained snapshot, not a changed rediscovery.
+                self.opportunities.save(OpportunitySave(original.opportunity, None))
+                continue
             self.opportunities.save_observation(observation)
             self.opportunities.save(OpportunitySave(observation.opportunity, None))
         return batch

@@ -3,13 +3,14 @@
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from test_research_worker import make_world
 
 from agentmine.application.contracts.records import BudgetCommit
 from agentmine.application.contracts.research import ResearchClaim
-from agentmine.application.errors import PortError
+from agentmine.application.errors import PortError, PortErrorCode
 from agentmine.domain.values import Reference
 from agentmine.infrastructure.sqlite.database import SQLiteDatabase
 from agentmine.infrastructure.sqlite.ledger import SQLiteCostLedgerRepository
@@ -72,3 +73,52 @@ def test_conflicting_snapshot_rejected(tmp_path: Path) -> None:
     journal.save_plan(world.plan)
     with pytest.raises(PortError):
         journal.save_plan(replace(world.plan, questions=("Different question",)))
+
+
+def test_halfway_failure_reopens_and_keeps_first_source(tmp_path: Path) -> None:
+    path = tmp_path / "halfway.sqlite"
+    database = SQLiteDatabase(path)
+    world = make_world(SQLiteResearchJournal(database))
+    second = replace(
+        world.plan.sources[0], operation_reference=Reference("read-2"), locator="fixture:two"
+    )
+    plan = replace(world.plan, sources=(*world.plan.sources, second))
+    ledger = SQLiteCostLedgerRepository(database)
+    ledger.commit(
+        BudgetCommit(
+            Reference("ledger"), world.ledger.snapshots[Reference("ledger")].value, None, None
+        )
+    )
+    worker = replace(world.worker, budget=replace(world.worker.budget, ledger=ledger))
+    claim = SQLiteResearchJournal.claim
+
+    def fail_second(journal: SQLiteResearchJournal, request: ResearchClaim) -> bool:
+        if request.operation_reference == second.operation_reference:
+            raise PortError(PortErrorCode.UNAVAILABLE, "claim", "Injected temporary failure")
+        return claim(journal, request)
+
+    with patch.object(SQLiteResearchJournal, "claim", fail_second):
+        with pytest.raises(PortError):
+            worker.execute(plan)
+    reopened = SQLiteDatabase(path)
+    journal = SQLiteResearchJournal(reopened)
+    first = journal.get_observation(plan.sources[0].operation_reference)
+    assert first is not None
+    assert journal.get_observation(second.operation_reference) is None
+    assert len(world.tool.calls) == 1 and not world.llm.calls
+    recovered = replace(
+        worker,
+        journal=journal,
+        budget=replace(worker.budget, ledger=SQLiteCostLedgerRepository(reopened)),
+    )
+    result = recovered.execute(plan)
+    assert len(result.sources) == 2
+    assert journal.get_observation(plan.sources[0].operation_reference) == first
+    assert [call.step.operation_reference for call in world.tool.calls] == [
+        plan.sources[0].operation_reference,
+        second.operation_reference,
+    ]
+    assert len(world.llm.calls) == 1
+    snapshot = ledger.get(Reference("ledger"))
+    assert snapshot is not None and len(snapshot.value.records) == 3
+    assert not snapshot.value.outstanding
