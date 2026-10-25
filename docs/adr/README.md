@@ -46,3 +46,5 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0021: Atomic API submission dispatch and cancellation ordering](0021-atomic-submission-dispatch.md)
 
 - [0022: Evidence-bound human eligibility resolution](0022-human-eligibility-resolution.md)
+
+- [0023: Immutable Data runtime evidence and atomic lifecycle persistence](0023-local-worker-runtime-foundation.md)

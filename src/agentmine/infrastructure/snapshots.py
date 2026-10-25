@@ -16,6 +16,7 @@ from agentmine.application.contracts import (
     opportunities,
     records,
     research,
+    runtime,
     submission,
     workflow,
 )
@@ -61,6 +62,7 @@ class SnapshotCodec:
             opportunities,
             records,
             research,
+            runtime,
             submission,
             workflow,
             budget,
