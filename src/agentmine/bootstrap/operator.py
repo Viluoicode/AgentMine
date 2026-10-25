@@ -10,6 +10,11 @@ from pathlib import Path
 from agentmine.application.errors import PortError
 from agentmine.application.ports.services import Clock, OpportunitySource
 from agentmine.application.use_cases.dashboard import GetOperatorDashboard
+from agentmine.application.use_cases.eligibility_review import (
+    GetEligibilityReview,
+    PrepareEligibilityReview,
+    ResolveEligibilityReview,
+)
 from agentmine.application.use_cases.operator import (
     DecideOperatorReview,
     GetOperatorReview,
@@ -28,6 +33,7 @@ from agentmine.infrastructure.marketplaces.superteam import SuperteamOpportunity
 from agentmine.infrastructure.marketplaces.superteam_http import SuperteamHTTP
 from agentmine.infrastructure.sqlite.approval import SQLiteApprovalRepository
 from agentmine.infrastructure.sqlite.database import SQLiteDatabase
+from agentmine.infrastructure.sqlite.eligibility_review import SQLiteEligibilityReviewRepository
 from agentmine.infrastructure.sqlite.executions import SQLiteExecutionRepository
 from agentmine.infrastructure.sqlite.ledger import SQLiteCostLedgerRepository
 from agentmine.infrastructure.sqlite.operator import SQLiteOperatorReadRepository
@@ -63,6 +69,7 @@ def compose_operator(
     executions = SQLiteExecutionRepository(database)
     ledger = SQLiteCostLedgerRepository(database)
     approvals = SQLiteApprovalRepository(database)
+    eligibility_reviews = SQLiteEligibilityReviewRepository(database)
     ledger_count = ledger.count() if create_workspace else 0
     if create_workspace and (
         ledger_count > 1 or (ledger_count == 1 and ledger.get(ledger_reference) is None)
@@ -82,6 +89,9 @@ def compose_operator(
             NormalizeOpportunity(opportunities),
             opportunities,
         ),
+        PrepareEligibilityReview(opportunities, eligibility_reviews, source, clock),
+        GetEligibilityReview(eligibility_reviews),
+        ResolveEligibilityReview(opportunities, eligibility_reviews, source, clock, operator),
     )
 
 
@@ -92,7 +102,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             # Validate every operator-supplied business limit before creating any file.
             workspace_policy(args)
         actor = os.environ.get("AGENTMINE_OPERATOR_ID", "")
-        if args.command == "decide" and not actor.strip():
+        eligibility_decision = args.command == "eligibility" and args.eligibility_action == "decide"
+        if (args.command == "decide" or eligibility_decision) and not actor.strip():
             raise ValueError("Operator identity required")
         clock = UTCClock()
         source: OpportunitySource = DisabledOpportunitySource()
@@ -106,7 +117,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         if live_discovery or live_approval:
             if live_approval and (args.command != "decide" or args.decision != "APPROVE"):
-                raise ValueError("Live refresh applies only to explicit APPROVE")
+                if not (
+                    args.command == "eligibility"
+                    and args.eligibility_action in ("prepare", "decide")
+                ):
+                    raise ValueError(
+                        "Live refresh requires submission approval or eligibility review"
+                    )
             secret = os.environ.get("AGENTMINE_SUPERTEAM_API_KEY", "")
             archive_value = args.raw_archive if live_discovery else args.archive
             archive = Path(archive_value) if archive_value else Path(str(args.db) + ".raw.sqlite3")

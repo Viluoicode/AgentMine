@@ -4,14 +4,22 @@ import argparse
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from typing import TextIO
 
 from agentmine.application.contracts.dashboard import OperatorDashboard
+from agentmine.application.contracts.eligibility import RecordedEligibilityReview
 from agentmine.application.contracts.operator import OperatorReview
 from agentmine.application.contracts.opportunities import DiscoveryRequest
 from agentmine.application.errors import ApplicationError, PortError
 from agentmine.application.use_cases.dashboard import GetOperatorDashboard
+from agentmine.application.use_cases.eligibility_review import (
+    GetEligibilityReview,
+    PrepareEligibilityReview,
+    ResolveEligibilityReview,
+)
 from agentmine.application.use_cases.operator import (
     DecideOperatorReview,
     GetOperatorReview,
@@ -23,9 +31,12 @@ from agentmine.application.use_cases.workspace import (
 )
 from agentmine.domain.approval import OperatorDecision
 from agentmine.domain.budget import BudgetPolicy, OperatingMode
+from agentmine.domain.eligibility import EligibilityPolicy
+from agentmine.domain.eligibility_review import EligibilityChoice, ManualEligibilityEvidence
 from agentmine.domain.errors import DomainError
 from agentmine.domain.money import Money
 from agentmine.domain.values import Reference
+from agentmine.presentation.eligibility_inputs import read_eligibility_request
 
 
 def quoted(value: str) -> str:
@@ -188,6 +199,40 @@ class OperatorServices:
     ledger_reference: Reference
     initialize: InitializeWorkspace
     load_opportunities: LoadWorkspaceOpportunities
+    eligibility_prepare: PrepareEligibilityReview
+    eligibility_get: GetEligibilityReview
+    eligibility_resolve: ResolveEligibilityReview
+
+
+def render_eligibility_review(record: RecordedEligibilityReview) -> str:
+    review = record.review
+    source = review.inspection.source
+    return "\n".join(
+        (
+            "ELIGIBILITY REVIEW | separate from submission approval",
+            "Review: " + quoted(review.reference.value),
+            "Opportunity: " + quoted(review.opportunity_snapshot.value.reference.value),
+            "Reasons: " + quoted(str(tuple(r.value for r in review.inspection.result.reasons))),
+            "Facts: " + quoted(str(review.inspection.request.facts)),
+            "Participant: " + quoted(str(review.inspection.request.profile)),
+            "Policy: " + quoted(str(review.policy)),
+            "Eligibility rules: " + quoted(review.rules_version),
+            "Opportunity revision: " + str(review.opportunity_snapshot.revision),
+            "Source version: "
+            + (
+                "UNKNOWN"
+                if source.terms_reference is None
+                else quoted(source.terms_reference.value)
+            ),
+            "Source requirements: "
+            + ("UNKNOWN" if source.requirements is None else quoted(source.requirements)),
+            "Decision: "
+            + ("PENDING" if record.resolution is None else quoted(str(record.resolution))),
+            "Recorded eligibility result: "
+            + ("PENDING" if record.resolution is None else record.resolution.status.value),
+            "Only MANUAL_SUBMISSION_REQUIRED is resolvable; no override of blockers or UNKNOWN.",
+        )
+    )
 
 
 def parser() -> argparse.ArgumentParser:
@@ -197,7 +242,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "--live-superteam-refresh",
         action="store_true",
-        help="Opt in to read-only production refresh when approving submission",
+        help="Opt in to read-only source refresh for submission approval or eligibility review",
     )
     result.add_argument("--archive", help="Existing raw archive path for live refresh")
     commands = result.add_subparsers(dest="command", required=True)
@@ -241,6 +286,31 @@ def parser() -> argparse.ArgumentParser:
         "--decision", choices=[choice.value for choice in OperatorDecision], required=True
     )
     decide.add_argument("--reason")
+    eligibility = commands.add_parser(
+        "eligibility", help="Review eligibility; never approve submission"
+    )
+    actions = eligibility.add_subparsers(dest="eligibility_action", required=True)
+    prepare = actions.add_parser("prepare")
+    prepare.add_argument("--review-id", required=True)
+    prepare.add_argument("--opportunity", required=True)
+    prepare.add_argument("--facts", required=True, help="Local JSON facts/profile file")
+    prepare.add_argument("--minimum-time-seconds", type=int, required=True)
+    show_eligibility = actions.add_parser("show")
+    show_eligibility.add_argument("--review-id", required=True)
+    decide_eligibility = actions.add_parser("decide")
+    decide_eligibility.add_argument("--review-id", required=True)
+    decide_eligibility.add_argument(
+        "--decision", choices=[c.value for c in EligibilityChoice], required=True
+    )
+    decide_eligibility.add_argument("--reason", required=True)
+    for flag in (
+        "manual-destination",
+        "instructions-evidence",
+        "access-evidence",
+        "requirements-evidence",
+    ):
+        decide_eligibility.add_argument("--" + flag)
+    decide_eligibility.add_argument("--manual-requirements-met", action="store_true")
     return result
 
 
@@ -250,6 +320,64 @@ def run_command(args: argparse.Namespace, services: OperatorServices, output: Te
             print(
                 render_dashboard(services.dashboard.execute(services.ledger_reference)), file=output
             )
+        elif args.command == "eligibility":
+            try:
+                if args.eligibility_action == "prepare":
+                    request = read_eligibility_request(
+                        Path(args.facts), Reference(args.opportunity)
+                    )
+                    eligibility_policy = EligibilityPolicy(
+                        timedelta(seconds=args.minimum_time_seconds)
+                    )
+                    services.eligibility_prepare.execute(
+                        Reference(args.review_id), request, eligibility_policy
+                    )
+                elif args.eligibility_action == "decide":
+                    evidence = None
+                    if args.decision == EligibilityChoice.APPROVE.value:
+                        evidence = ManualEligibilityEvidence(
+                            Reference(args.manual_destination or ""),
+                            Reference(args.instructions_evidence or ""),
+                            Reference(args.access_evidence or ""),
+                            Reference(args.requirements_evidence or ""),
+                            args.manual_requirements_met,
+                        )
+                    elif any(
+                        (
+                            args.manual_destination,
+                            args.instructions_evidence,
+                            args.access_evidence,
+                            args.requirements_evidence,
+                            args.manual_requirements_met,
+                        )
+                    ):
+                        raise ValueError("Rejection cannot carry manual approval evidence")
+                    services.eligibility_resolve.execute(
+                        Reference(args.review_id),
+                        EligibilityChoice(args.decision),
+                        args.reason,
+                        evidence,
+                    )
+                print(
+                    render_eligibility_review(
+                        services.eligibility_get.execute(Reference(args.review_id))
+                    ),
+                    file=output,
+                )
+            except DomainError:
+                raise  # Preserve structured domain codes at the common CLI boundary.
+            except (OSError, ValueError, OverflowError):
+                print(
+                    json.dumps(
+                        {
+                            "status": "failed",
+                            "code": "eligibility_input",
+                            "message": "Invalid local eligibility input or configuration",
+                        }
+                    ),
+                    file=output,
+                )
+                return 2
         elif args.command == "workspace":
             if args.workspace_action == "init":
                 policy = workspace_policy(args)

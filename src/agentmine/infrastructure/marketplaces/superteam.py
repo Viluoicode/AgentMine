@@ -2,6 +2,7 @@
 
 import logging
 from dataclasses import dataclass
+from hashlib import sha256
 
 from agentmine.application.contracts.opportunities import (
     DiscoveryRequest,
@@ -25,6 +26,7 @@ from agentmine.infrastructure.marketplaces.superteam_normalization import (
     invalid_response,
     listing_object,
     normalize_detail,
+    requirements_text,
 )
 
 
@@ -116,6 +118,8 @@ class SuperteamOpportunitySource:
                 PortErrorCode.UNSUPPORTED, "refresh", "Agent participation is not confirmed"
             )
         is_open, deadline = availability(detail)
+        # Adapter-derived content version; no undocumented vendor revision API.
+        # Exact body hashing is conservative: harmless payload changes can require review again.
         return OpportunityStatus(
             request.opportunity_reference,
             request.source_reference,
@@ -123,4 +127,6 @@ class SuperteamOpportunitySource:
             is_open,
             deadline.at,
             deadline.kind != DeadlineKind.UNKNOWN,
+            Reference("source:sha256:" + sha256(capture.body).hexdigest()),
+            requirements_text(detail),
         )

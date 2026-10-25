@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import ClassVar
 
 from agentmine.domain.eligibility import (
     AIParticipationPolicy,
@@ -19,6 +20,7 @@ from agentmine.domain.work import Eligibility, EligibilityReason, EligibilitySta
 
 @dataclass(frozen=True, slots=True)
 class EligibilityEngine:
+    VERSION: ClassVar[str] = "deterministic-eligibility-v1"
     policy: EligibilityPolicy
 
     def __post_init__(self) -> None:

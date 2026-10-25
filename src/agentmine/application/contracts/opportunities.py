@@ -5,7 +5,7 @@ from datetime import datetime
 
 from agentmine.domain.errors import DomainError, ErrorCode
 from agentmine.domain.opportunity import Opportunity
-from agentmine.domain.values import Reference, require_aware_timestamp
+from agentmine.domain.values import Reference, require_aware_timestamp, require_reference
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,9 +55,19 @@ class OpportunityStatus:
     is_open: bool | None
     deadline: datetime | None
     deadline_known: bool = True
+    terms_reference: Reference | None = None
+    requirements: str | None = None
 
     def __post_init__(self) -> None:
         require_aware_timestamp(self.observed_at)
+        if self.terms_reference is not None:
+            require_reference(self.terms_reference, "source_terms")
+        if self.requirements is not None and (
+            not isinstance(self.requirements, str) or not self.requirements.strip()
+        ):
+            raise DomainError(
+                ErrorCode.INVALID_VALUE, "requirements", "Source text or unknown required"
+            )
         _validate_status(self.is_open, self.deadline, self.deadline_known)
         if self.deadline is not None:
             require_aware_timestamp(self.deadline)

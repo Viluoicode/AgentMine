@@ -44,3 +44,5 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0020: Local workspace initialization and ingestion](0020-local-workspace-bootstrap.md)
 
 - [0021: Atomic API submission dispatch and cancellation ordering](0021-atomic-submission-dispatch.md)
+
+- [0022: Evidence-bound human eligibility resolution](0022-human-eligibility-resolution.md)

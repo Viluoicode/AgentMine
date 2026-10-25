@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from agentmine.infrastructure.sqlite.database import SQLiteDatabase
+from agentmine.infrastructure.sqlite.eligibility_review import SQLiteEligibilityReviewRepository
 from agentmine.infrastructure.sqlite.evaluations import SQLiteEvaluationRepository
 from agentmine.infrastructure.sqlite.executions import SQLiteExecutionRepository
 from agentmine.infrastructure.sqlite.ledger import SQLiteCostLedgerRepository
@@ -18,6 +19,7 @@ class LocalRepositories:
     executions: SQLiteExecutionRepository
     submissions: SQLiteSubmissionRepository
     ledger: SQLiteCostLedgerRepository
+    eligibility_reviews: SQLiteEligibilityReviewRepository
 
 
 def open_local_repositories(path: Path) -> LocalRepositories:
@@ -28,4 +30,5 @@ def open_local_repositories(path: Path) -> LocalRepositories:
         SQLiteExecutionRepository(database),
         SQLiteSubmissionRepository(database),
         SQLiteCostLedgerRepository(database),
+        SQLiteEligibilityReviewRepository(database),
     )

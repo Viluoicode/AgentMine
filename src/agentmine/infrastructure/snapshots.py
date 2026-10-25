@@ -20,6 +20,9 @@ from agentmine.application.contracts import (
     workflow,
 )
 from agentmine.application.contracts import (
+    eligibility as eligibility_contracts,
+)
+from agentmine.application.contracts import (
     qa as qa_contracts,
 )
 from agentmine.application.errors import PortError, PortErrorCode
@@ -28,6 +31,7 @@ from agentmine.domain import (
     budget,
     economics,
     eligibility,
+    eligibility_review,
     finance,
     history,
     money,
@@ -62,6 +66,8 @@ class SnapshotCodec:
             budget,
             economics,
             eligibility,
+            eligibility_contracts,
+            eligibility_review,
             finance,
             history,
             money,
@@ -208,6 +214,8 @@ class SnapshotCodec:
             }
         elif cls is work.Outcome:
             legacy_defaults = {"rejection_reason": None}
+        elif cls is opportunities.OpportunityStatus:
+            legacy_defaults = {"terms_reference": None, "requirements": None}
         elif cls is opportunity.Opportunity:
             legacy_defaults = {"payment_verification": None}
         elif cls is submission.PaymentVerificationResult:

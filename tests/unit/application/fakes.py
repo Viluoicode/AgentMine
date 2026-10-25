@@ -111,6 +111,8 @@ class FakeSource:
     deadline: datetime | None = None
     deadline_known: bool = True
     refreshes: int = 0
+    terms_reference: Reference | None = None
+    requirements: str | None = None
 
     def discover(self, request: DiscoveryRequest) -> OpportunityBatch:
         return OpportunityBatch(self.observations[: request.limit])
@@ -124,6 +126,8 @@ class FakeSource:
             self.is_open,
             self.deadline,
             self.deadline_known,
+            self.terms_reference,
+            self.requirements,
         )
 
 

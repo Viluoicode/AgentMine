@@ -29,7 +29,13 @@ from agentmine.domain.work import Submission
 
 
 class OpportunitySource(Protocol):
-    """Discover observations and refresh open/deadline facts; no eligibility policy."""
+    """Discover observations and refresh source facts, never eligibility policy.
+
+    Review-capable refreshes include current requirements and a content-bound
+    terms_reference. Unknown/unavailable context stays None and cannot authorize
+    human eligibility resolution. This is a source adapter assertion, not a
+    guessed marketplace revision endpoint or a verification of supplied profiles.
+    """
 
     def discover(self, request: DiscoveryRequest) -> OpportunityBatch: ...
 

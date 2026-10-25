@@ -1,5 +1,11 @@
 # Milestone 7A: Local operator interface
 
+Human eligibility review now has separate `eligibility prepare`, `eligibility show`
+and `eligibility decide` commands. See the
+[F04 remediation guide](audits/remediation-02-eligibility-review.md#9-operator-use-and-limitations)
+for evidence inputs, source refresh and limitations. Eligibility approval never
+grants submission approval.
+
 The minimum interface is a standard-library CLI. It initializes or opens a SQLite
 workspace and invokes application use cases. No web server, frontend framework,
 AWS resource, paid model, submission gateway or payment verifier is instantiated.

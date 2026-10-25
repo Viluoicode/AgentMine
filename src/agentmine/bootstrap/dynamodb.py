@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from agentmine.infrastructure.dynamodb.approval import DynamoDBApprovalRepository
 from agentmine.infrastructure.dynamodb.data import DynamoDBDataJournal
+from agentmine.infrastructure.dynamodb.eligibility_review import DynamoDBEligibilityReviewRepository
 from agentmine.infrastructure.dynamodb.evaluations import DynamoDBEvaluationRepository
 from agentmine.infrastructure.dynamodb.executions import DynamoDBExecutionRepository
 from agentmine.infrastructure.dynamodb.history import DynamoDBHistoricalRepository
@@ -27,6 +28,7 @@ class DynamoDBRepositories:
     research: DynamoDBResearchJournal
     data: DynamoDBDataJournal
     qa: DynamoDBQAJournal
+    eligibility_reviews: DynamoDBEligibilityReviewRepository
 
 
 def dynamodb_repositories(
@@ -44,4 +46,5 @@ def dynamodb_repositories(
         DynamoDBResearchJournal(store),
         DynamoDBDataJournal(store),
         DynamoDBQAJournal(store),
+        DynamoDBEligibilityReviewRepository(store),
     )

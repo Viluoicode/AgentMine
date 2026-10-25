@@ -128,6 +128,18 @@ def agent_policy(data: JSONObject) -> AIParticipationPolicy:
     return AIParticipationPolicy.UNKNOWN
 
 
+def requirements_text(data: JSONObject) -> str | None:
+    """Exact current description/requirements; no task or eligibility inference."""
+    text: list[str] = []
+    for name in ("description", "requirements"):
+        value = data.get(name)
+        if value is not None and not isinstance(value, str):
+            raise invalid_response()
+        if isinstance(value, str) and value.strip():
+            text.append(value)
+    return "\n\n".join(text) if text else None
+
+
 def normalize_detail(
     data: JSONObject,
     observed_at: datetime,
@@ -150,14 +162,8 @@ def normalize_detail(
         issues.append(NormalizationIssue.AI_POLICY_UNKNOWN)
     elif policy == AIParticipationPolicy.PROHIBITED:
         issues.append(NormalizationIssue.AI_PARTICIPATION_PROHIBITED)
-    text: list[str] = []
-    for name in ("description", "requirements"):
-        value = data.get(name)
-        if value is not None and not isinstance(value, str):
-            raise invalid_response()
-        if isinstance(value, str) and value.strip():
-            text.append(value)
-    if not text:
+    requirements = requirements_text(data)
+    if requirements is None:
         issues.append(NormalizationIssue.REQUIREMENTS_UNKNOWN)
     if data.get("type") is None or data.get("compensationType") is None:
         issues.append(NormalizationIssue.REWARD_MODEL_UNKNOWN)
@@ -177,13 +183,14 @@ def normalize_detail(
     if not issues:
         assert isinstance(amount, Decimal) and isinstance(token, str)
         assert isinstance(title, str)
+        assert requirements is not None
         opportunity = Opportunity(
             reference, title, Reward(Money(amount, token), evidence=raw_reference)
         )
         observation = OpportunityObservation(
             opportunity,
             source,
-            "\n\n".join(text),
+            requirements,
             observed_at,
             is_open,
             deadline.at,

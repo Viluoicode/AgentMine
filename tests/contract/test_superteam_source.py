@@ -1,6 +1,7 @@
 import json
 import sqlite3
 from datetime import UTC, datetime
+from hashlib import sha256
 from pathlib import Path
 
 import pytest
@@ -24,6 +25,25 @@ from agentmine.infrastructure.marketplaces.superteam import SuperteamOpportunity
 from agentmine.infrastructure.marketplaces.superteam_http import ReadFailure, SuperteamReadError
 from agentmine.infrastructure.sqlite.database import SQLiteDatabase
 from agentmine.infrastructure.sqlite.opportunities import SQLiteOpportunityRepository
+
+
+def test_review_source_version_is_content_bound_not_capture_time(tmp_path: Path) -> None:
+    adapter, transport = source(tmp_path)
+    payload = json.loads(transport.detail)
+    request = RefreshOpportunityRequest(
+        Reference("superteam:" + payload["id"]), Reference("superteam:" + payload["slug"])
+    )
+    first = adapter.refresh(request)
+    assert first.terms_reference == Reference(
+        "source:sha256:" + sha256(transport.detail).hexdigest()
+    )
+    assert first.requirements is not None
+    assert adapter.refresh(request).terms_reference == first.terms_reference
+    payload["requirements"] = "Changed manual channel requirements"
+    transport.detail = json.dumps(payload).encode()
+    changed = adapter.refresh(request)
+    assert changed.terms_reference != first.terms_reference
+    assert changed.requirements != first.requirements
 
 
 class FrozenClock:
