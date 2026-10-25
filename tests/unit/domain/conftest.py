@@ -91,6 +91,7 @@ def lifecycle() -> dict[OpportunityState, Opportunity]:
     opportunity = remember(opportunity.review_qa(qa))
     approval = HumanApproval(deliverable, Reference("target-1"), Reference("human-1"), timestamp)
     opportunity = remember(opportunity.approve(approval))
+    remember(opportunity.begin_submission())
     submission = Submission(
         Reference("submission-1"),
         deliverable,

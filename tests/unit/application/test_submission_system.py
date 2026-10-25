@@ -2,6 +2,7 @@
 
 from dataclasses import replace
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from fakes import FakeGateway, FakeSubmissions
@@ -91,7 +92,7 @@ def test_api_retry_metadata_and_unknown_reconciliation(world: World, failure: st
         with pytest.raises(PortError) as error:
             submit.execute(world.reference, Reference("send"))
         assert "SECRET" not in str(error.value)
-        assert world.current().state == OpportunityState.APPROVED_FOR_SUBMISSION
+        assert world.current().state == OpportunityState.SUBMISSION_IN_FLIGHT
         assert world.submissions.attempts[-1].status == SubmissionAttemptStatus.UNKNOWN
         gateway.fail = gateway.invalid = False
         with pytest.raises(PortError):
@@ -122,11 +123,17 @@ class FailingReceiptStore(FakeSubmissions):
 def test_confirmation_recovery_never_dispatches_again(world: World, failure: str) -> None:
     approved(world)
     gateway = MetadataGateway(world.clock)
-    store = FailingReceiptStore()
+    store = FailingReceiptStore(opportunities=world.opportunities)
     store.fail = failure == "receipt"
-    world.opportunities.fail_save = failure == "opportunity"
     submit = replace(world.submit_task(), gateway=gateway, submissions=store)
-    with pytest.raises(PortError):
+    original_submit = gateway.submit
+
+    def fail_after_dispatch(request: SubmissionRequest) -> SubmissionResult:
+        result = original_submit(request)
+        world.opportunities.fail_save = failure == "opportunity"
+        return result
+
+    with patch.object(gateway, "submit", fail_after_dispatch), pytest.raises(PortError):
         submit.execute(world.reference, Reference("send"))
     assert any(attempt.status == SubmissionAttemptStatus.CONFIRMED for attempt in store.attempts)
     world.opportunities.fail_save = store.fail = False
@@ -156,7 +163,7 @@ def test_known_failure_is_retained_without_retry(world: World) -> None:
     result = submit.execute(world.reference, Reference("send"))
     assert submit.execute(world.reference, Reference("send")) == result
     assert gateway.submits == 1 and gateway.reconciles == 0
-    assert world.current().state == OpportunityState.APPROVED_FOR_SUBMISSION
+    assert world.current().state == OpportunityState.SUBMISSION_IN_FLIGHT
 
 
 @pytest.mark.parametrize("recover", [False, True])

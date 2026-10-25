@@ -1,16 +1,19 @@
 """Atomic submission intent ownership and immutable receipts/outcomes."""
 
 import hashlib
+import sqlite3
 from dataclasses import dataclass
 
 from agentmine.application.contracts.submission import (
     OutcomeObservation,
     PaymentVerificationResult,
     SubmissionAttemptStatus,
+    SubmissionDispatch,
     SubmissionRequest,
     SubmissionResult,
 )
 from agentmine.application.errors import PortError, PortErrorCode
+from agentmine.domain.opportunity import Opportunity
 from agentmine.domain.values import Reference
 from agentmine.domain.work import Outcome, Submission
 from agentmine.infrastructure.sqlite.database import IndexValues, SQLiteDatabase, composite_key
@@ -25,28 +28,50 @@ class SQLiteSubmissionRepository:
 
     def claim_request(self, request: SubmissionRequest) -> bool:
         with self.database.transaction(write=True) as connection:
-            rows = connection.execute(
-                "SELECT * FROM snapshots WHERE kind = ?", ("submission_request",)
-            ).fetchall()
-            for row in rows:
-                other = self.database.decode(row, SubmissionRequest).value
-                if other.reference == request.reference:
-                    if other != request:
-                        raise PortError(
-                            PortErrorCode.CONFLICT, "submit", "Submission identity changed"
-                        )
-                    return False
-                if (other.deliverable.reference, other.deliverable.version) == (
-                    request.deliverable.reference,
-                    request.deliverable.version,
-                ):
-                    raise PortError(
-                        PortErrorCode.CONFLICT,
-                        "submit",
-                        "Deliverable version already has a submission intent",
-                    )
-            self.database.write(
-                connection, "submission_request", request.reference.value, request, 1, IndexValues()
+            return self._claim_request(connection, request)
+
+    def _claim_request(self, connection: sqlite3.Connection, request: SubmissionRequest) -> bool:
+        rows = connection.execute(
+            "SELECT * FROM snapshots WHERE kind = ?", ("submission_request",)
+        ).fetchall()
+        for row in rows:
+            other = self.database.decode(row, SubmissionRequest).value
+            if other.reference == request.reference:
+                if other != request:
+                    raise PortError(PortErrorCode.CONFLICT, "submit", "Submission identity changed")
+                return False
+            if (other.deliverable.reference, other.deliverable.version) == (
+                request.deliverable.reference,
+                request.deliverable.version,
+            ):
+                raise PortError(
+                    PortErrorCode.CONFLICT,
+                    "submit",
+                    "Deliverable version already has a submission intent",
+                )
+        self.database.write(
+            connection, "submission_request", request.reference.value, request, 1, IndexValues()
+        )
+        return True
+
+    def claim_dispatch(self, dispatch: SubmissionDispatch) -> bool:
+        expected = dispatch.opportunity_snapshot
+        updated = dispatch.in_flight
+        with self.database.transaction(write=True) as connection:
+            if not self._claim_request(connection, dispatch.request):
+                return False
+            current = self.database.read(
+                connection, "opportunity", updated.reference.value, Opportunity
+            )
+            if current != expected:
+                raise PortError(PortErrorCode.CONFLICT, "submit", "Approved opportunity changed")
+            self.database.compare_and_swap(
+                connection,
+                "opportunity",
+                updated.reference.value,
+                updated,
+                expected.revision,
+                IndexValues(status=updated.state.value),
             )
             return True
 

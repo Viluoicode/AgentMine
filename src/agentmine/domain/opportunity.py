@@ -71,6 +71,7 @@ class OpportunityState(StrEnum):
     QA_PENDING = "qa_pending"
     READY_FOR_HUMAN_REVIEW = "ready_for_human_review"
     APPROVED_FOR_SUBMISSION = "approved_for_submission"
+    SUBMISSION_IN_FLIGHT = "submission_in_flight"
     SUBMITTED = "submitted"
     REJECTED = "rejected"
     ACCEPTED = "accepted"
@@ -136,7 +137,15 @@ class OpportunityState(StrEnum):
                     )
                 )
             case OpportunityState.APPROVED_FOR_SUBMISSION:
-                return frozenset((OpportunityState.SUBMITTED, OpportunityState.SKIPPED))
+                return frozenset(
+                    (
+                        OpportunityState.SUBMITTED,
+                        OpportunityState.SKIPPED,
+                        OpportunityState.SUBMISSION_IN_FLIGHT,
+                    )
+                )
+            case OpportunityState.SUBMISSION_IN_FLIGHT:
+                return frozenset((OpportunityState.SUBMITTED,))
             case OpportunityState.SUBMITTED:
                 return frozenset((OpportunityState.ACCEPTED, OpportunityState.REJECTED))
             case OpportunityState.ACCEPTED:
@@ -427,6 +436,11 @@ class Opportunity:
                 ErrorCode.EVIDENCE_MISMATCH, "approval", "Approval requires current passing QA"
             )
         return self._move(OpportunityState.APPROVED_FOR_SUBMISSION, approval=approval)
+
+    def begin_submission(self) -> Opportunity:
+        """A durable API claim wins over cancellation; receipt is still unknown."""
+        self._require_state(OpportunityState.APPROVED_FOR_SUBMISSION)
+        return self._move(OpportunityState.SUBMISSION_IN_FLIGHT)
 
     def submit(self, submission: Submission) -> Opportunity:
         if (

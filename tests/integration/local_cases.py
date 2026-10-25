@@ -97,6 +97,7 @@ def snapshots(identifier: str = "op", score: str = "75") -> dict[OpportunityStat
     op = remember(op.review_qa(qa))
     approval = HumanApproval(deliverable, Reference("target"), Reference("human"), instant())
     op = remember(op.approve(approval))
+    remember(op.begin_submission())
     sub = Submission(
         Reference(identifier + ":sub"),
         deliverable,
@@ -156,8 +157,13 @@ def repositories(backend: str, path: Path) -> RepositoryPorts:
             local.submissions,
             local.ledger,
         )
+    opportunities = FakeOpportunities()
     return RepositoryPorts(
-        FakeOpportunities(), FakeEvaluations(), FakeExecutions(), FakeSubmissions(), FakeLedger({})
+        opportunities,
+        FakeEvaluations(),
+        FakeExecutions(),
+        FakeSubmissions(opportunities=opportunities),
+        FakeLedger({}),
     )
 
 

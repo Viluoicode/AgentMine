@@ -6,6 +6,7 @@ from agentmine.application.contracts.submission import (
     OutcomeObservation,
     PaymentVerificationResult,
     SubmissionAttemptStatus,
+    SubmissionDispatch,
     SubmissionRequest,
     SubmissionResult,
 )
@@ -51,6 +52,46 @@ class DynamoDBSubmissionRepository:
 
     def get_request(self, reference: Reference) -> SubmissionRequest | None:
         return self.database.value("submission_request", reference.value, SubmissionRequest)
+
+    def claim_dispatch(self, dispatch: SubmissionDispatch) -> bool:
+        request = dispatch.request
+        existing = self.get_request(request.reference)
+        if existing is not None:
+            if existing != request:
+                raise conflict()
+            return False
+        expected = dispatch.opportunity_snapshot
+        op = dispatch.in_flight
+        raw = self.database.raw(*key("opportunity", op.reference.value))
+        if raw is None or self.database.decode(raw, type(op)) != expected:
+            raise conflict()
+        updated = self.database.item(
+            *key("opportunity", op.reference.value), op, expected.revision + 1
+        )
+        # Only lifecycle changes. Preserve existing score/source index projections.
+        updated.update({name: value for name, value in raw.items() if name.startswith("GSI")})
+        updated["GSI1PK"] = "STATE#" + op.state.value
+        items = [
+            self.database.item(*key("submission_request", request.reference.value), request),
+            self.database.item(
+                "SUBMISSION_VERSION#"
+                + identity(request.deliverable.reference.value, request.deliverable.version),
+                "OWNER",
+                request.reference,
+            ),
+        ]
+        try:
+            self.database.transact(
+                [self.database.put(item) for item in items]
+                + [self.database.put(updated, revision=expected.revision)]
+            )
+            return True
+        except PortError as error:
+            if error.code != PortErrorCode.CONFLICT:
+                raise
+            if self.get_request(request.reference) != request:
+                raise conflict() from None
+            return False
 
     def record_attempt(self, result: SubmissionResult) -> None:
         items = self.database.evidence(

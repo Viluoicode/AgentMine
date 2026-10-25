@@ -6,6 +6,7 @@ from agentmine.application.contracts.submission import (
     ManualSubmissionPackage,
     PaymentVerificationRequest,
     SubmissionAttemptStatus,
+    SubmissionDispatch,
     SubmissionMode,
     SubmissionRequest,
     SubmissionResult,
@@ -69,7 +70,12 @@ class SubmitTask:
                 opportunity.submission,
                 "Legacy confirmed receipt; metadata unavailable",
             )
-        require_state(opportunity, OpportunityState.APPROVED_FOR_SUBMISSION)
+        if opportunity.state != OpportunityState.SUBMISSION_IN_FLIGHT:
+            require_state(opportunity, OpportunityState.APPROVED_FOR_SUBMISSION)
+        elif original is None or mode != SubmissionMode.API:
+            raise PortError(
+                PortErrorCode.CONFLICT, "submit", "Matching in-flight API intent required"
+            )
         assert (
             opportunity.deliverable is not None
             and opportunity.qa is not None
@@ -123,7 +129,19 @@ class SubmitTask:
                 )
             if original is None and mode != SubmissionMode.UNSUPPORTED:
                 refresh(self.opportunities, self.source, self.clock, reference)
-            claimed = self.submissions.claim_request(request)
+            if mode == SubmissionMode.API:
+                claimed = (
+                    self.submissions.claim_dispatch(SubmissionDispatch(request, previous))
+                    if original is None
+                    else False
+                )
+                # Reload the transaction's revision for receipt recovery. Permission
+                # comes from the atomic claim, never from this separate read.
+                previous = load(self.opportunities, reference)
+                if claimed:
+                    require_state(previous.value, OpportunityState.SUBMISSION_IN_FLIGHT)
+            else:
+                claimed = self.submissions.claim_request(request)
             if mode == SubmissionMode.UNSUPPORTED:
                 result = SubmissionResult(
                     submission_reference,

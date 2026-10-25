@@ -13,6 +13,7 @@ from agentmine.application.contracts.records import (
 from agentmine.application.contracts.submission import (
     OutcomeObservation,
     PaymentVerificationResult,
+    SubmissionDispatch,
     SubmissionRequest,
     SubmissionResult,
 )
@@ -82,9 +83,23 @@ class SubmissionRepository(Protocol):
 
     def save_request(self, request: SubmissionRequest) -> None: ...
 
+    def claim_dispatch(self, dispatch: SubmissionDispatch) -> bool:
+        """Atomically create API intent/version ownership AND mark opportunity in-flight.
+
+        Its approved snapshot/revision must still be authoritative. Cancellation
+        winning first conflicts with NO intent or dispatch permission. True grants
+        one send; identical existing intent returns False (observation only).
+        Both repositories must share the same authoritative store. An ambiguous
+        transaction raises OUTCOME_UNKNOWN; it never grants permission to send.
+        Legacy claim_request/save_request alone never grant new API dispatch.
+        """
+        ...
+
     def claim_request(self, request: SubmissionRequest) -> bool:
         """Claim once per ID AND deliverable reference/version, across modes/targets.
 
+        This retains legacy/manual intents; True is NOT API dispatch permission.
+        New API sends must use claim_dispatch and its atomic opportunity guard.
         Identical retry returns False; a different ID for that version conflicts.
         save_request must enforce the same uniqueness and prevent later dispatch.
         """

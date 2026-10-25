@@ -35,6 +35,7 @@ from agentmine.application.contracts.submission import (
     PaymentVerificationRequest,
     PaymentVerificationResult,
     SubmissionAttemptStatus,
+    SubmissionDispatch,
     SubmissionRequest,
     SubmissionResult,
 )
@@ -279,6 +280,7 @@ class FakeProvider:
 
 @dataclass
 class FakeSubmissions:
+    opportunities: FakeOpportunities | None = field(default=None, kw_only=True)
     requests: dict[Reference, SubmissionRequest] = field(default_factory=dict)
     attempts: list[SubmissionResult] = field(default_factory=list)
     submissions: dict[Reference, Submission] = field(default_factory=dict)
@@ -301,6 +303,25 @@ class FakeSubmissions:
         created = request.reference not in self.requests
         self.save_request(request)
         return created
+
+    def claim_dispatch(self, dispatch: SubmissionDispatch) -> bool:
+        existing = self.get_request(dispatch.request.reference)
+        if existing is not None:
+            if existing != dispatch.request:
+                raise PortError(PortErrorCode.CONFLICT, "submit", "Submission identity changed")
+            return False
+        assert self.opportunities is not None
+        expected = dispatch.opportunity_snapshot
+        if self.opportunities.get(expected.value.reference) != expected:
+            raise PortError(PortErrorCode.CONFLICT, "submit", "Approved opportunity changed")
+        old = self.requests.copy()
+        self.save_request(dispatch.request)
+        try:
+            self.opportunities.save(OpportunitySave(dispatch.in_flight, expected.revision))
+        except Exception:
+            self.requests = old
+            raise
+        return True
 
     def get_request(self, reference: Reference) -> SubmissionRequest | None:
         return self.requests.get(reference)

@@ -5,8 +5,10 @@ from datetime import datetime
 from enum import StrEnum
 
 from agentmine.application.contracts.ai import ReferencedText
+from agentmine.application.contracts.records import Versioned
 from agentmine.domain.errors import DomainError, ErrorCode
 from agentmine.domain.finance import Reward, RewardStage
+from agentmine.domain.opportunity import Opportunity
 from agentmine.domain.payment import PaymentEvidence
 from agentmine.domain.values import Reference, require_aware_timestamp, require_reference
 from agentmine.domain.work import (
@@ -67,6 +69,31 @@ class SubmissionRequest:
             or self.content.reference != self.deliverable.content_reference
         ):
             raise DomainError(ErrorCode.EVIDENCE_MISMATCH, "submission", "QA/approval mismatch")
+
+
+@dataclass(frozen=True, slots=True)
+class SubmissionDispatch:
+    """Atomically bind an API intent to the approved authoritative revision."""
+
+    request: SubmissionRequest
+    opportunity_snapshot: Versioned[Opportunity]
+
+    def __post_init__(self) -> None:
+        op = self.opportunity_snapshot.value
+        if (
+            self.request.mode != SubmissionMode.API
+            or self.request.deliverable != op.deliverable
+            or self.request.qa != op.qa
+            or self.request.approval != op.approval
+        ):
+            raise DomainError(
+                ErrorCode.EVIDENCE_MISMATCH, "dispatch", "Current API approval required"
+            )
+        op.begin_submission()  # State precondition belongs to Domain.
+
+    @property
+    def in_flight(self) -> Opportunity:
+        return self.opportunity_snapshot.value.begin_submission()
 
 
 class SubmissionAttemptStatus(StrEnum):

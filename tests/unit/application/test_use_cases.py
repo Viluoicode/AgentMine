@@ -85,6 +85,9 @@ class World:
     verifier: FakeVerifier
     reference: Reference
 
+    def __post_init__(self) -> None:
+        self.submissions.opportunities = self.opportunities
+
     def execute_task(self) -> ExecuteTask:
         return ExecuteTask(
             self.opportunities, self.executions, self.ledger, self.provider, self.source, self.clock
@@ -405,7 +408,7 @@ def test_unknown_submission_reconciles_without_resubmission(world: World) -> Non
     approved(world)
     world.gateway.status = SubmissionAttemptStatus.UNKNOWN
     assert world.submit_task().execute(world.reference, Reference("submission")).submission is None
-    assert world.current().state == OpportunityState.APPROVED_FOR_SUBMISSION
+    assert world.current().state == OpportunityState.SUBMISSION_IN_FLIGHT
     world.gateway.status = SubmissionAttemptStatus.CONFIRMED
     assert (
         world.submit_task().execute(world.reference, Reference("submission")).submission is not None
