@@ -1,13 +1,14 @@
 """Ordered, evidence-bearing deliverable QA; never submit or grant human approval."""
 
-import json
 import logging
 from dataclasses import dataclass
 
 from agentmine.application.budget_manager import BudgetManager
 from agentmine.application.contracts.ai import ReferencedText
-from agentmine.application.contracts.qa import QAInspection
+from agentmine.application.contracts.operational_qa import QAApplicationBinding, QACompletion
+from agentmine.application.contracts.qa import QAInspection, lifecycle_qa_result
 from agentmine.application.errors import PortError, PortErrorCode
+from agentmine.application.ports.operational_qa import OperationalQARepository
 from agentmine.application.ports.qa import QAJournal
 from agentmine.application.ports.repositories import ExecutionRepository, OpportunityRepository
 from agentmine.application.ports.services import Clock, LLMProvider
@@ -17,7 +18,6 @@ from agentmine.application.use_cases.context import load, require_state
 from agentmine.application.use_cases.execution import RunQA
 from agentmine.domain.opportunity import OpportunityState
 from agentmine.domain.qa import QAOutcome, QAReport
-from agentmine.domain.work import QAResult, QAStatus
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,38 +28,37 @@ class DeliverableQA:
     clock: Clock
     budget: BudgetManager | None = None
     llm: LLMProvider | None = None
+    lifecycle: OperationalQARepository | None = None
 
-    def _apply(self, inspection: QAInspection, report: QAReport) -> None:
-        if report.outcome == QAOutcome.REQUIRES_HUMAN_REVIEW:
-            return  # Remains QA_PENDING, never implies passing QA or approval.
-        status = QAStatus.PASSED if report.outcome == QAOutcome.PASS else QAStatus.FAILED
-        findings = json.dumps(
-            {
-                "report": report.reference.value,
-                "outcome": report.outcome.value,
-                "checks": [
-                    {
-                        "stage": item.stage.value,
-                        "code": item.code,
-                        "outcome": item.outcome.value,
-                        "explanation": item.explanation,
-                        "evidence": [ref.value for ref in item.evidence],
-                    }
-                    for item in report.findings
-                ],
-            },
-            sort_keys=True,
-        )
-        RunQA(self.opportunities, self.executions).execute(
-            inspection.plan.execution.task.opportunity_reference,
-            QAResult(report.deliverable, status, findings),
-        )
+    def _apply(
+        self, inspection: QAInspection, report: QAReport, binding: QAApplicationBinding | None
+    ) -> None:
+        if binding is not None:
+            if self.lifecycle is None:
+                raise PortError(
+                    PortErrorCode.UNSUPPORTED, "qa", "Conditional QA completion not configured"
+                )
+            self.lifecycle.complete(QACompletion(binding, inspection, report))
+            return
+        result = lifecycle_qa_result(report)
+        if result is not None:
+            RunQA(self.opportunities, self.executions).execute(
+                inspection.plan.execution.task.opportunity_reference, result
+            )
 
-    def execute(self, inspection: QAInspection) -> QAReport:
+    def execute(
+        self, inspection: QAInspection, *, binding: QAApplicationBinding | None = None
+    ) -> QAReport:
+        if binding is not None:
+            if self.lifecycle is None:
+                raise PortError(
+                    PortErrorCode.UNSUPPORTED, "qa", "Conditional QA completion not configured"
+                )
+            self.lifecycle.claim(binding, inspection)
         self.journal.save_inspection(inspection)
         cached = self.journal.get_report(inspection.reference)
         if cached is not None:
-            self._apply(inspection, cached)
+            self._apply(inspection, cached, binding)
             return cached
         opportunity = load(
             self.opportunities, inspection.plan.execution.task.opportunity_reference
@@ -101,7 +100,7 @@ class DeliverableQA:
         self.journal.save_report(
             report
         )  # Recover transition conflicts without recomputing/repaying.
-        self._apply(inspection, report)
+        self._apply(inspection, report, binding)
         logging.getLogger(__name__).info(
             "deliverable_qa_completed",
             extra={

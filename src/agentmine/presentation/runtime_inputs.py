@@ -16,6 +16,13 @@ from agentmine.application.contracts.data import (
 )
 from agentmine.application.contracts.eligibility import EligibilityCheckRequest
 from agentmine.application.contracts.local_runtime import ApprovedDataInput, PrepareDataRequest
+from agentmine.application.contracts.qa import (
+    ArtifactFormat,
+    CoverageKind,
+    DataAcceptanceCriteria,
+    QARequirement,
+    RequiredArtifact,
+)
 from agentmine.domain.economics import EconomicInputs, EstimatedCosts, SignalEstimate
 from agentmine.domain.eligibility import EligibilityPolicy
 from agentmine.domain.money import Money
@@ -174,7 +181,15 @@ def read_prepare(
 ) -> PrepareDataRequest:
     obj = fields(
         read_json(path),
-        {"sources", "columns", "unique_by", "min_records", "max_records", "constraints"},
+        {
+            "sources",
+            "columns",
+            "unique_by",
+            "min_records",
+            "max_records",
+            "constraints",
+            "acceptance",
+        },
         {"sources", "columns"},
     )
     inputs: list[ApprovedDataInput] = []
@@ -212,4 +227,27 @@ def read_prepare(
         integer(obj.get("max_records", 1000)),
         tuple(constraints),
         review,
+        None if obj.get("acceptance") is None else acceptance(obj["acceptance"]),
     )
+
+
+def acceptance(value: object) -> DataAcceptanceCriteria:
+    obj = fields(value, {"formats", "requirements"}, {"formats", "requirements"})
+    formats: list[RequiredArtifact] = []
+    for item in items(obj["formats"], 20):
+        entry = fields(item, {"name", "format"}, {"name", "format"})
+        formats.append(RequiredArtifact(text(entry["name"]), ArtifactFormat(text(entry["format"]))))
+    requirements: list[QARequirement] = []
+    for item in items(obj["requirements"], 50):
+        entry = fields(
+            item, {"id", "artifact", "kind", "criterion"}, {"id", "artifact", "kind", "criterion"}
+        )
+        requirements.append(
+            QARequirement(
+                Reference(text(entry["id"])),
+                text(entry["artifact"]),
+                CoverageKind(text(entry["kind"])),
+                text(entry["criterion"]),
+            )
+        )
+    return DataAcceptanceCriteria(tuple(formats), tuple(requirements))

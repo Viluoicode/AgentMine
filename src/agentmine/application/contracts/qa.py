@@ -10,8 +10,9 @@ from agentmine.application.contracts.data import DataPlan, DataResult
 from agentmine.application.contracts.research import ResearchResult, TaskPlan
 from agentmine.domain.budget import BudgetAuthorization
 from agentmine.domain.errors import DomainError, ErrorCode
+from agentmine.domain.qa import QAOutcome, QAReport
 from agentmine.domain.values import Reference, require_reference
-from agentmine.domain.work import Deliverable
+from agentmine.domain.work import Deliverable, QAResult, QAStatus
 
 
 class ArtifactFormat(StrEnum):
@@ -55,6 +56,61 @@ class QARequirement:
             raise DomainError(
                 ErrorCode.INVALID_VALUE, "qa_requirement", "Bounded criterion required"
             )
+
+
+@dataclass(frozen=True, slots=True)
+class DataAcceptanceCriteria:
+    """Frozen operator criteria, never synthesized from the generated deliverable."""
+
+    formats: tuple[RequiredArtifact, ...]
+    requirements: tuple[QARequirement, ...]
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.formats, tuple)
+            or not 1 <= len(self.formats) <= 20
+            or any(
+                not isinstance(item, RequiredArtifact)
+                or item.name not in ("data.csv", "data.json", "validation.json")
+                or item.format not in (ArtifactFormat.CSV, ArtifactFormat.JSON)
+                for item in self.formats
+            )
+            or len({item.name for item in self.formats}) != len(self.formats)
+            or not isinstance(self.requirements, tuple)
+            or not 1 <= len(self.requirements) <= 50
+            or any(not isinstance(item, QARequirement) for item in self.requirements)
+            or len({item.reference for item in self.requirements}) != len(self.requirements)
+        ):
+            raise DomainError(
+                ErrorCode.INVALID_VALUE,
+                "acceptance_criteria",
+                "Explicit typed Data acceptance criteria required",
+            )
+
+
+def lifecycle_qa_result(report: QAReport) -> QAResult | None:
+    """Existing QA-to-lifecycle mapping, shared by legacy and guarded completion."""
+    if report.outcome == QAOutcome.REQUIRES_HUMAN_REVIEW:
+        return None
+    status = QAStatus.PASSED if report.outcome == QAOutcome.PASS else QAStatus.FAILED
+    findings = json.dumps(
+        {
+            "report": report.reference.value,
+            "outcome": report.outcome.value,
+            "checks": [
+                {
+                    "stage": item.stage.value,
+                    "code": item.code,
+                    "outcome": item.outcome.value,
+                    "explanation": item.explanation,
+                    "evidence": [ref.value for ref in item.evidence],
+                }
+                for item in report.findings
+            ],
+        },
+        sort_keys=True,
+    )
+    return QAResult(report.deliverable, status, findings)
 
 
 def bundle_content(result: DataResult | ResearchResult) -> ReferencedText:

@@ -3,7 +3,10 @@
 F02-B3-A adds explicit local `opportunity` and `work` commands for deterministic
 Data execution and artifact export. See the
 [B3-A commands and input guide](audits/remediation-03-b3a-operator-cli.md#commands-and-inputs).
-Execution stops at QA_PENDING; QA orchestration and external submission are absent.
+Execution stops at QA_PENDING. F02-B3-B adds explicit `work qa` with retained
+approved acceptance criteria; see the
+[operational QA guide](audits/remediation-03-b3b-operational-qa.md#operator-commands).
+External submission remains absent.
 
 Human eligibility review now has separate `eligibility prepare`, `eligibility show`
 and `eligibility decide` commands. See the

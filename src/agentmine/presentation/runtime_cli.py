@@ -10,6 +10,7 @@ from enum import Enum
 from pathlib import Path
 from typing import TextIO
 
+from agentmine.application.contracts.operational_qa import OperationalQAStatus
 from agentmine.application.contracts.runtime import (
     ExecutionBinding,
     RuntimeStatus,
@@ -30,10 +31,16 @@ from agentmine.application.use_cases.local_runtime import (
     PrepareDataSpecification,
     RecoverDataExecution,
 )
+from agentmine.application.use_cases.operational_qa import (
+    GetOperationalQAStatus,
+    RunOperationalDataQA,
+)
 from agentmine.application.use_cases.planning import EvaluateOpportunity, PlanTask, ScoreOpportunity
 from agentmine.application.use_cases.worker_execution import ExecuteWorkerTask
 from agentmine.domain.eligibility import EligibilityPolicy
 from agentmine.domain.errors import DomainError
+from agentmine.domain.opportunity import OpportunityState
+from agentmine.domain.qa import QAOutcome
 from agentmine.domain.scoring import ScoringPolicy
 from agentmine.domain.values import Reference
 from agentmine.domain.work import TaskType
@@ -54,6 +61,8 @@ class RuntimeServices:
     execute: ExecuteWorkerTask
     recover: RecoverDataExecution
     export: ExportDataArtifacts
+    qa: RunOperationalDataQA
+    qa_status: GetOperationalQAStatus
 
 
 def add_runtime_parsers(commands: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -74,7 +83,7 @@ def add_runtime_parsers(commands: argparse._SubParsersAction[argparse.ArgumentPa
         elif action == "plan":
             parser.add_argument("--task", required=True)
             parser.add_argument("--description", required=True)
-    work = commands.add_parser("work", help="Deterministic Data only; never QA or submission")
+    work = commands.add_parser("work", help="Deterministic Data and zero-AI QA; never submission")
     actions = work.add_subparsers(dest="work_action", required=True)
     prepare = actions.add_parser("prepare")
     for name in ("opportunity", "spec-id", "inputs", "input-root", "facts", "evaluation"):
@@ -89,6 +98,10 @@ def add_runtime_parsers(commands: argparse._SubParsersAction[argparse.ArgumentPa
         execute.add_argument("--" + name, required=True)
     execute.add_argument("--expected-revision", required=True, type=int)
     execute.add_argument("--confirm", action="store_true")
+    qa = actions.add_parser("qa")
+    qa.add_argument("--execution-id", required=True)
+    qa.add_argument("--inspection-id", required=True)
+    qa.add_argument("--confirm", action="store_true")
     for name in ("status", "recover", "export"):
         parser = actions.add_parser(name)
         parser.add_argument("--execution-id", required=True)
@@ -140,13 +153,28 @@ def specification_view(spec: WorkSpecification) -> dict[str, object]:
         "min_records": spec.min_records,
         "max_records": spec.max_records,
         "eligibility_and_economic_forecast_evidence": encode(spec.execution_evidence),
+        "approved_acceptance_criteria": encode(spec.acceptance),
         "preparation_dispatches_work": False,
         "specification_grants_submission_approval": False,
     }
 
 
-def runtime_view(view: RuntimeStatus) -> dict[str, object]:
+def runtime_view(view: RuntimeStatus, qa: OperationalQAStatus) -> dict[str, object]:
     result = view.result
+    report = qa.report
+    action = (
+        "QA_REQUIRED"
+        if qa.binding is None
+        else "RETRY_SAME_INSPECTION"
+        if report is None or not qa.applied
+        else "F05_REWORK_REQUIRED"
+        if view.opportunity_snapshot.value.state == OpportunityState.IN_PROGRESS
+        else "HUMAN_QA_ACTION_REQUIRED"
+        if report.outcome == QAOutcome.REQUIRES_HUMAN_REVIEW
+        else "OPERATOR_REVIEW_REQUIRED"
+        if view.opportunity_snapshot.value.approval is None
+        else "NO_AUTOMATIC_SUBMISSION"
+    )
     return {
         "execution_id": view.run.binding.execution_reference.value,
         "binding": encode(view.run.binding),
@@ -176,6 +204,20 @@ def runtime_view(view: RuntimeStatus) -> dict[str, object]:
             ],
         },
         "external_submission": False,
+        "qa": {
+            "inspection": None if qa.binding is None else qa.binding.reference.value,
+            "applied": qa.applied,
+            "report": None
+            if report is None
+            else {
+                "reference": report.reference.value,
+                "outcome": report.outcome.value,
+                "checked_at": report.checked_at.isoformat(),
+                "findings": encode(report.findings),
+                "artifact_content_reference": report.deliverable.content_reference.value,
+            },
+            "required_action": action,
+        },
     }
 
 
@@ -241,7 +283,29 @@ def run_runtime_command(args: argparse.Namespace, services: RuntimeServices, out
             elif action == "show":
                 data = specification_view(services.specification.execute(Reference(args.spec_id)))
             elif action == "status":
-                data = runtime_view(services.status.execute(Reference(args.execution_id)))
+                data = runtime_view(
+                    services.status.execute(Reference(args.execution_id)),
+                    services.qa_status.execute(Reference(args.execution_id)),
+                )
+            elif action == "qa":
+                if not args.confirm:
+                    raise PortError(
+                        PortErrorCode.UNSUPPORTED,
+                        "operator_intent",
+                        "Explicit --confirm required for QA",
+                    )
+                report = services.qa.execute(
+                    Reference(args.execution_id), Reference(args.inspection_id)
+                )
+                data = {
+                    "qa_outcome": report.outcome.value,
+                    "inspection_id": report.reference.value,
+                    "findings": encode(report.findings),
+                    "opportunity_state": services.status.execute(
+                        Reference(args.execution_id)
+                    ).opportunity_snapshot.value.state.name,
+                    "external_submission": False,
+                }
             elif action == "export":
                 exported = services.export.execute(Reference(args.execution_id))
                 data = {

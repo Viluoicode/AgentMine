@@ -89,6 +89,7 @@ class PrepareDataSpecification:
                 evaluation,
                 request.eligibility_review_reference,
             ),
+            request.acceptance,
         )
         if existing is not None and existing != candidate:
             raise PortError(PortErrorCode.CONFLICT, "prepare_work", "Specification identity reused")

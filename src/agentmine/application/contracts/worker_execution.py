@@ -51,6 +51,7 @@ class WorkerExecutionReason(StrEnum):
     PERSISTENCE_OUTCOME_UNKNOWN = "persistence_outcome_unknown"
     EXTERNAL_OUTCOME_UNKNOWN = "external_outcome_unknown"
     WORKER_FAILED = "worker_failed"
+    REWORK_REQUIRED = "rework_required"
 
 
 @dataclass(frozen=True, slots=True)

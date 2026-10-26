@@ -5,6 +5,7 @@ from datetime import datetime
 
 from agentmine.application.contracts.data import DataColumn, DataFormat, RowConstraint
 from agentmine.application.contracts.eligibility import EligibilityCheckRequest
+from agentmine.application.contracts.qa import DataAcceptanceCriteria
 from agentmine.application.contracts.runtime import InputEvidence
 from agentmine.domain.eligibility import EligibilityPolicy
 from agentmine.domain.values import Reference, require_aware_timestamp, require_reference
@@ -46,6 +47,7 @@ class PrepareDataRequest:
     max_records: int = 1000
     constraints: tuple[RowConstraint, ...] = ()
     eligibility_review_reference: Reference | None = None
+    acceptance: DataAcceptanceCriteria | None = None
 
     def __post_init__(self) -> None:
         for value in (self.reference, self.opportunity_reference, self.evaluation_reference):

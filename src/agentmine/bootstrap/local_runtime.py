@@ -4,6 +4,7 @@ from pathlib import Path
 
 from agentmine.application.budget_manager import BudgetManager
 from agentmine.application.ports.services import Clock, OpportunitySource
+from agentmine.application.use_cases.deliverable_qa import DeliverableQA
 from agentmine.application.use_cases.eligibility import CheckEligibility
 from agentmine.application.use_cases.local_runtime import (
     ExportDataArtifacts,
@@ -13,8 +14,13 @@ from agentmine.application.use_cases.local_runtime import (
     PrepareDataSpecification,
     RecoverDataExecution,
 )
+from agentmine.application.use_cases.operational_qa import (
+    GetOperationalQAStatus,
+    RunOperationalDataQA,
+)
 from agentmine.application.use_cases.planning import EvaluateOpportunity, PlanTask, ScoreOpportunity
 from agentmine.application.use_cases.worker_execution import ExecuteWorkerTask
+from agentmine.application.use_cases.worker_preflight import WorkerPreflight
 from agentmine.domain.eligibility_rules import EligibilityEngine
 from agentmine.domain.values import Reference
 from agentmine.infrastructure.local_artifact_export import LocalArtifactExporter
@@ -24,8 +30,11 @@ from agentmine.infrastructure.sqlite.data import SQLiteDataJournal
 from agentmine.infrastructure.sqlite.database import SQLiteDatabase
 from agentmine.infrastructure.sqlite.eligibility_review import SQLiteEligibilityReviewRepository
 from agentmine.infrastructure.sqlite.evaluations import SQLiteEvaluationRepository
+from agentmine.infrastructure.sqlite.executions import SQLiteExecutionRepository
 from agentmine.infrastructure.sqlite.ledger import SQLiteCostLedgerRepository
+from agentmine.infrastructure.sqlite.operational_qa import SQLiteOperationalQARepository
 from agentmine.infrastructure.sqlite.opportunities import SQLiteOpportunityRepository
+from agentmine.infrastructure.sqlite.qa import SQLiteQAJournal
 from agentmine.infrastructure.sqlite.runtime import SQLiteWorkerRuntimeRepository
 from agentmine.presentation.runtime_cli import RuntimeServices
 
@@ -59,6 +68,10 @@ def compose_local_runtime(
         operator,
         reviews,
     )
+    executions = SQLiteExecutionRepository(database)
+    qa_journal = SQLiteQAJournal(database)
+    qa_repository = SQLiteOperationalQARepository(database)
+    validator = DeliverableQA(opportunities, executions, qa_journal, clock, lifecycle=qa_repository)
     return RuntimeServices(
         GetOperatorOpportunity(opportunities),
         lambda policy: CheckEligibility(opportunities, source, clock, EligibilityEngine(policy)),
@@ -81,4 +94,17 @@ def compose_local_runtime(
         execution,
         RecoverDataExecution(runtime, execution),
         ExportDataArtifacts(runtime, LocalArtifactExporter(export_directory), operator),
+        RunOperationalDataQA(
+            runtime,
+            opportunities,
+            executions,
+            qa_repository,
+            qa_journal,
+            validator,
+            WorkerPreflight(opportunities, evaluations, source, clock, operator, reviews),
+            clock,
+            operator,
+            ledger_reference,
+        ),
+        GetOperationalQAStatus(runtime, qa_repository, qa_journal),
     )

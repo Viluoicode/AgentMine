@@ -18,7 +18,7 @@ from agentmine.application.contracts.data import (
 )
 from agentmine.application.contracts.execution_evidence import DataExecutionEvidence
 from agentmine.application.contracts.opportunities import OpportunityStatus
-from agentmine.application.contracts.qa import bundle_content
+from agentmine.application.contracts.qa import DataAcceptanceCriteria, bundle_content
 from agentmine.application.contracts.records import Versioned
 from agentmine.domain.budget import Budget
 from agentmine.domain.errors import DomainError, ErrorCode
@@ -72,6 +72,7 @@ class WorkSpecification:
     max_records: int = 1000
     constraints: tuple[RowConstraint, ...] = ()
     execution_evidence: DataExecutionEvidence | None = None
+    acceptance: DataAcceptanceCriteria | None = None
 
     def __post_init__(self) -> None:
         for name, value in (
@@ -81,6 +82,8 @@ class WorkSpecification:
         ):
             require_reference(value, name)
         require_aware_timestamp(self.approved_at)
+        if self.acceptance is not None and not isinstance(self.acceptance, DataAcceptanceCriteria):
+            raise invalid("acceptance")
         if self.execution_evidence is not None and not isinstance(
             self.execution_evidence, DataExecutionEvidence
         ):

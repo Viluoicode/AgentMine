@@ -52,3 +52,5 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0024: Deterministic Data execution and original-identity recovery](0024-deterministic-data-execution.md)
 
 - [0025: Local Data operator CLI and approved filesystem boundaries](0025-local-data-operator-cli.md)
+
+- [0026: Approved QA criteria and conditional inspection completion](0026-operational-qa-completion.md)

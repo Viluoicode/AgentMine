@@ -98,6 +98,8 @@ class ExecuteWorkerTask:
             if view.ai_evidence_present:
                 return blocked(WorkerExecutionReason.EXTERNAL_OUTCOME_UNKNOWN)
             if view.finished:
+                if view.opportunity_snapshot.value.state == OpportunityState.IN_PROGRESS:
+                    return blocked(WorkerExecutionReason.REWORK_REQUIRED)
                 return WorkerExecutionOutcome(
                     WorkerExecutionStatus.COMPLETED,
                     WorkerExecutionReason.NONE,

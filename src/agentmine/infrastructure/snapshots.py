@@ -13,6 +13,7 @@ from agentmine.application.contracts import (
     ai,
     data,
     execution_evidence,
+    operational_qa,
     operator,
     opportunities,
     records,
@@ -56,6 +57,7 @@ class SnapshotCodec:
         modules = (
             approval,
             operator,
+            operational_qa,
             qa_contracts,
             qa_domain,
             ai,
@@ -221,7 +223,14 @@ class SnapshotCodec:
         elif cls is opportunities.OpportunityStatus:
             legacy_defaults = {"terms_reference": None, "requirements": None}
         elif cls is runtime.WorkSpecification:
-            legacy_defaults = {"execution_evidence": None}
+            # Two explicitly additive optional fields. Missing evidence is never fabricated.
+            missing_optional = {
+                key: self._encode(None)
+                for key in ("execution_evidence", "acceptance")
+                if key not in node["fields"]
+            }
+            if missing_optional:
+                node = dict(node, fields={**node["fields"], **missing_optional})
         elif cls is opportunity.Opportunity:
             legacy_defaults = {"payment_verification": None}
         elif cls is submission.PaymentVerificationResult:

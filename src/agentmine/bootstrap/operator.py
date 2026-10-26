@@ -116,7 +116,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         eligibility_decision = args.command == "eligibility" and args.eligibility_action == "decide"
         runtime_mutation = (
             args.command == "work"
-            and args.work_action in ("prepare", "execute", "recover", "export")
+            and args.work_action in ("prepare", "execute", "recover", "export", "qa")
         ) or (args.command == "opportunity" and args.opportunity_action != "show")
         if (
             args.command == "decide" or eligibility_decision or runtime_mutation
@@ -140,7 +140,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ) and not (
                     (
                         args.command == "work"
-                        and args.work_action in ("prepare", "execute", "recover")
+                        and args.work_action in ("prepare", "execute", "recover", "qa")
                     )
                     or (args.command == "opportunity" and args.opportunity_action != "show")
                 ):
