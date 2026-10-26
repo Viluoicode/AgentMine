@@ -16,6 +16,7 @@ from agentmine.application.contracts.data import (
     RowConstraint,
     ValueKind,
 )
+from agentmine.application.contracts.execution_evidence import DataExecutionEvidence
 from agentmine.application.contracts.opportunities import OpportunityStatus
 from agentmine.application.contracts.qa import bundle_content
 from agentmine.application.contracts.records import Versioned
@@ -70,6 +71,7 @@ class WorkSpecification:
     min_records: int = 1
     max_records: int = 1000
     constraints: tuple[RowConstraint, ...] = ()
+    execution_evidence: DataExecutionEvidence | None = None
 
     def __post_init__(self) -> None:
         for name, value in (
@@ -79,6 +81,10 @@ class WorkSpecification:
         ):
             require_reference(value, name)
         require_aware_timestamp(self.approved_at)
+        if self.execution_evidence is not None and not isinstance(
+            self.execution_evidence, DataExecutionEvidence
+        ):
+            raise invalid("execution_evidence")
         if not isinstance(self.task, Task) or self.task.task_type != TaskType.DATA_PROCESSING:
             raise invalid("worker_capability")
         source = self.source_context
@@ -379,6 +385,7 @@ class RecoveryReason(StrEnum):
     RESULT_MISSING = "result_missing"
     FINISH_PENDING = "finish_pending"
     STATE_CHANGED = "state_changed"
+    AI_EVIDENCE_PRESENT = "ai_evidence_present"
 
 
 @dataclass(frozen=True, slots=True)
@@ -389,9 +396,12 @@ class RuntimeStatus:
     opportunity_snapshot: Versioned[Opportunity]
     result: DataResult | None
     finished: bool
+    ai_evidence_present: bool = False
 
     @property
     def reason(self) -> RecoveryReason:
+        if self.ai_evidence_present:
+            return RecoveryReason.AI_EVIDENCE_PRESENT
         if self.finished:
             return RecoveryReason.NONE
         op = self.opportunity_snapshot.value

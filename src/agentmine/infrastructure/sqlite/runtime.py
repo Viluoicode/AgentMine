@@ -165,6 +165,8 @@ class SQLiteWorkerRuntimeRepository:
             ).fetchone()
             if collision is not None:
                 raise conflict()
+            if self._has_ai_evidence(connection, binding):
+                raise conflict()
             self._keep(connection, "runtime_owner", run.specification.task.reference.value, binding)
             self._keep(
                 connection,
@@ -284,8 +286,26 @@ class SQLiteWorkerRuntimeRepository:
         if result is not None:
             WorkerResult(run, result.value)
         return RuntimeStatus(
-            run, op, None if result is None else result.value, completed is not None
+            run,
+            op,
+            None if result is None else result.value,
+            completed is not None,
+            self._has_ai_evidence(connection, run.binding),
         )
+
+    def _has_ai_evidence(self, connection: sqlite3.Connection, binding: ExecutionBinding) -> bool:
+        return (
+            connection.execute(
+                "SELECT 1 FROM snapshots WHERE (kind='data_ai_claim' AND id=?) "
+                "OR (kind='data_response' AND id=?) LIMIT 1",
+                (binding.operation_reference.value, binding.execution_reference.value),
+            ).fetchone()
+            is not None
+        )
+
+    def has_ai_evidence(self, binding: ExecutionBinding) -> bool:
+        with self.database.transaction() as connection:
+            return self._has_ai_evidence(connection, binding)
 
     def inspect(self, execution_reference: Reference) -> RuntimeStatus | None:
         with self.database.transaction() as connection:

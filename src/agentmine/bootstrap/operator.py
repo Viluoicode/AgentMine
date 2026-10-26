@@ -25,6 +25,7 @@ from agentmine.application.use_cases.workspace import (
     InitializeWorkspace,
     LoadWorkspaceOpportunities,
 )
+from agentmine.bootstrap.local_runtime import compose_local_runtime
 from agentmine.domain.errors import DomainError
 from agentmine.domain.values import Reference
 from agentmine.infrastructure.marketplaces.disabled import DisabledOpportunitySource
@@ -59,6 +60,9 @@ def compose_operator(
     source: OpportunitySource,
     *,
     create_workspace: bool = False,
+    input_root: Path | None = None,
+    export_directory: Path | None = None,
+    validate_runtime_workspace: bool = False,
 ) -> OperatorServices:
     if not path.is_file():
         if not create_workspace:
@@ -76,6 +80,10 @@ def compose_operator(
     ):
         raise ValueError("Workspace must have one matching budget ledger")
     workspace = SQLiteOperatorReadRepository(database)
+    if validate_runtime_workspace:
+        workspace.read(
+            ledger_reference
+        )  # Fail on a missing/wrong/multiple ledger before runtime I/O.
     return OperatorServices(
         GetOperatorDashboard(workspace, clock),
         PrepareOperatorReview(opportunities, executions, ledger, approvals, clock),
@@ -92,6 +100,9 @@ def compose_operator(
         PrepareEligibilityReview(opportunities, eligibility_reviews, source, clock),
         GetEligibilityReview(eligibility_reviews),
         ResolveEligibilityReview(opportunities, eligibility_reviews, source, clock, operator),
+        compose_local_runtime(
+            database, ledger_reference, operator, clock, source, input_root, export_directory
+        ),
     )
 
 
@@ -103,7 +114,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             workspace_policy(args)
         actor = os.environ.get("AGENTMINE_OPERATOR_ID", "")
         eligibility_decision = args.command == "eligibility" and args.eligibility_action == "decide"
-        if (args.command == "decide" or eligibility_decision) and not actor.strip():
+        runtime_mutation = (
+            args.command == "work"
+            and args.work_action in ("prepare", "execute", "recover", "export")
+        ) or (args.command == "opportunity" and args.opportunity_action != "show")
+        if (
+            args.command == "decide" or eligibility_decision or runtime_mutation
+        ) and not actor.strip():
             raise ValueError("Operator identity required")
         clock = UTCClock()
         source: OpportunitySource = DisabledOpportunitySource()
@@ -120,9 +137,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if not (
                     args.command == "eligibility"
                     and args.eligibility_action in ("prepare", "decide")
+                ) and not (
+                    (
+                        args.command == "work"
+                        and args.work_action in ("prepare", "execute", "recover")
+                    )
+                    or (args.command == "opportunity" and args.opportunity_action != "show")
                 ):
                     raise ValueError(
-                        "Live refresh requires submission approval or eligibility review"
+                        "Live refresh requires approval, eligibility "
+                        "or a source-checking Data workflow command"
                     )
             secret = os.environ.get("AGENTMINE_SUPERTEAM_API_KEY", "")
             archive_value = args.raw_archive if live_discovery else args.archive
@@ -138,6 +162,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             clock,
             source,
             create_workspace=args.command == "workspace" and args.workspace_action == "init",
+            input_root=Path(args.input_root)
+            if args.command == "work" and args.work_action == "prepare"
+            else None,
+            export_directory=Path(args.directory)
+            if args.command == "work" and args.work_action == "export"
+            else None,
+            validate_runtime_workspace=args.command in ("work", "opportunity"),
         )
         return run_command(args, services, sys.stdout)
     except PortError as error:

@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 from agentmine.application.contracts import (
     ai,
     data,
+    execution_evidence,
     operator,
     opportunities,
     records,
@@ -59,6 +60,7 @@ class SnapshotCodec:
             qa_domain,
             ai,
             data,
+            execution_evidence,
             opportunities,
             records,
             research,
@@ -218,6 +220,8 @@ class SnapshotCodec:
             legacy_defaults = {"rejection_reason": None}
         elif cls is opportunities.OpportunityStatus:
             legacy_defaults = {"terms_reference": None, "requirements": None}
+        elif cls is runtime.WorkSpecification:
+            legacy_defaults = {"execution_evidence": None}
         elif cls is opportunity.Opportunity:
             legacy_defaults = {"payment_verification": None}
         elif cls is submission.PaymentVerificationResult:

@@ -13,7 +13,7 @@ from agentmine.application.contracts.dashboard import OperatorDashboard
 from agentmine.application.contracts.eligibility import RecordedEligibilityReview
 from agentmine.application.contracts.operator import OperatorReview
 from agentmine.application.contracts.opportunities import DiscoveryRequest
-from agentmine.application.errors import ApplicationError, PortError
+from agentmine.application.errors import ApplicationError, PortError, PortErrorCode
 from agentmine.application.use_cases.dashboard import GetOperatorDashboard
 from agentmine.application.use_cases.eligibility_review import (
     GetEligibilityReview,
@@ -37,6 +37,11 @@ from agentmine.domain.errors import DomainError
 from agentmine.domain.money import Money
 from agentmine.domain.values import Reference
 from agentmine.presentation.eligibility_inputs import read_eligibility_request
+from agentmine.presentation.runtime_cli import (
+    RuntimeServices,
+    add_runtime_parsers,
+    run_runtime_command,
+)
 
 
 def quoted(value: str) -> str:
@@ -202,6 +207,7 @@ class OperatorServices:
     eligibility_prepare: PrepareEligibilityReview
     eligibility_get: GetEligibilityReview
     eligibility_resolve: ResolveEligibilityReview
+    runtime: RuntimeServices | None = None
 
 
 def render_eligibility_review(record: RecordedEligibilityReview) -> str:
@@ -242,7 +248,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "--live-superteam-refresh",
         action="store_true",
-        help="Opt in to read-only source refresh for submission approval or eligibility review",
+        help="Opt in to read-only source refresh for approval, eligibility or local Data workflow",
     )
     result.add_argument("--archive", help="Existing raw archive path for live refresh")
     commands = result.add_subparsers(dest="command", required=True)
@@ -311,11 +317,18 @@ def parser() -> argparse.ArgumentParser:
     ):
         decide_eligibility.add_argument("--" + flag)
     decide_eligibility.add_argument("--manual-requirements-met", action="store_true")
+    add_runtime_parsers(commands)
     return result
 
 
 def run_command(args: argparse.Namespace, services: OperatorServices, output: TextIO) -> int:
     try:
+        if args.command in ("work", "opportunity"):
+            if services.runtime is None:
+                raise PortError(
+                    PortErrorCode.UNSUPPORTED, "runtime", "Local runtime is not configured"
+                )
+            return run_runtime_command(args, services.runtime, output)
         if args.command == "dashboard":
             print(
                 render_dashboard(services.dashboard.execute(services.ledger_reference)), file=output

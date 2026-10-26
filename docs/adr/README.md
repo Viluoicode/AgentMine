@@ -48,3 +48,7 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0022: Evidence-bound human eligibility resolution](0022-human-eligibility-resolution.md)
 
 - [0023: Immutable Data runtime evidence and atomic lifecycle persistence](0023-local-worker-runtime-foundation.md)
+
+- [0024: Deterministic Data execution and original-identity recovery](0024-deterministic-data-execution.md)
+
+- [0025: Local Data operator CLI and approved filesystem boundaries](0025-local-data-operator-cli.md)

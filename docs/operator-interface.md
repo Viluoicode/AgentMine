@@ -1,5 +1,10 @@
 # Milestone 7A: Local operator interface
 
+F02-B3-A adds explicit local `opportunity` and `work` commands for deterministic
+Data execution and artifact export. See the
+[B3-A commands and input guide](audits/remediation-03-b3a-operator-cli.md#commands-and-inputs).
+Execution stops at QA_PENDING; QA orchestration and external submission are absent.
+
 Human eligibility review now has separate `eligibility prepare`, `eligibility show`
 and `eligibility decide` commands. See the
 [F04 remediation guide](audits/remediation-02-eligibility-review.md#9-operator-use-and-limitations)
