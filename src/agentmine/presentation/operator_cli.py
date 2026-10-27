@@ -36,6 +36,7 @@ from agentmine.domain.eligibility_review import EligibilityChoice, ManualEligibi
 from agentmine.domain.errors import DomainError
 from agentmine.domain.money import Money
 from agentmine.domain.values import Reference
+from agentmine.presentation.budget_cli import BudgetServices, add_budget_parsers, run_budget_command
 from agentmine.presentation.eligibility_inputs import read_eligibility_request
 from agentmine.presentation.runtime_cli import (
     RuntimeServices,
@@ -208,6 +209,7 @@ class OperatorServices:
     eligibility_get: GetEligibilityReview
     eligibility_resolve: ResolveEligibilityReview
     runtime: RuntimeServices | None = None
+    budget: BudgetServices | None = None
 
 
 def render_eligibility_review(record: RecordedEligibilityReview) -> str:
@@ -252,6 +254,7 @@ def parser() -> argparse.ArgumentParser:
     )
     result.add_argument("--archive", help="Existing raw archive path for live refresh")
     commands = result.add_subparsers(dest="command", required=True)
+    add_budget_parsers(commands)
     commands.add_parser("dashboard")
     workspace = commands.add_parser("workspace", help="Initialize or load a local workspace")
     workspace_commands = workspace.add_subparsers(dest="workspace_action", required=True)
@@ -323,6 +326,12 @@ def parser() -> argparse.ArgumentParser:
 
 def run_command(args: argparse.Namespace, services: OperatorServices, output: TextIO) -> int:
     try:
+        if args.command == "budget":
+            if services.budget is None:
+                raise PortError(
+                    PortErrorCode.UNSUPPORTED, "budget_control", "Budget control not configured"
+                )
+            return run_budget_command(args, services.budget, output)
         if args.command in ("work", "opportunity"):
             if services.runtime is None:
                 raise PortError(

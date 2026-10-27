@@ -9,6 +9,12 @@ from pathlib import Path
 
 from agentmine.application.errors import PortError
 from agentmine.application.ports.services import Clock, OpportunitySource
+from agentmine.application.use_cases.budget_control import (
+    ApplyBudgetPolicyChange,
+    GetBudgetPolicyChange,
+    InspectBudgetRecovery,
+    PrepareBudgetPolicyChange,
+)
 from agentmine.application.use_cases.dashboard import GetOperatorDashboard
 from agentmine.application.use_cases.eligibility_review import (
     GetEligibilityReview,
@@ -33,12 +39,14 @@ from agentmine.infrastructure.marketplaces.raw_archive import RawArchive
 from agentmine.infrastructure.marketplaces.superteam import SuperteamOpportunitySource
 from agentmine.infrastructure.marketplaces.superteam_http import SuperteamHTTP
 from agentmine.infrastructure.sqlite.approval import SQLiteApprovalRepository
+from agentmine.infrastructure.sqlite.budget_control import SQLiteBudgetControlRepository
 from agentmine.infrastructure.sqlite.database import SQLiteDatabase
 from agentmine.infrastructure.sqlite.eligibility_review import SQLiteEligibilityReviewRepository
 from agentmine.infrastructure.sqlite.executions import SQLiteExecutionRepository
 from agentmine.infrastructure.sqlite.ledger import SQLiteCostLedgerRepository
 from agentmine.infrastructure.sqlite.operator import SQLiteOperatorReadRepository
 from agentmine.infrastructure.sqlite.opportunities import SQLiteOpportunityRepository
+from agentmine.presentation.budget_cli import BudgetServices
 from agentmine.presentation.operator_cli import (
     OperatorServices,
     parser,
@@ -80,6 +88,7 @@ def compose_operator(
     ):
         raise ValueError("Workspace must have one matching budget ledger")
     workspace = SQLiteOperatorReadRepository(database)
+    budget_control = SQLiteBudgetControlRepository(database)
     if validate_runtime_workspace:
         workspace.read(
             ledger_reference
@@ -103,6 +112,12 @@ def compose_operator(
         compose_local_runtime(
             database, ledger_reference, operator, clock, source, input_root, export_directory
         ),
+        BudgetServices(
+            InspectBudgetRecovery(budget_control, ledger_reference, clock),
+            PrepareBudgetPolicyChange(budget_control, ledger_reference, operator, clock),
+            GetBudgetPolicyChange(budget_control, ledger_reference, clock),
+            ApplyBudgetPolicyChange(budget_control, ledger_reference, operator, clock),
+        ),
     )
 
 
@@ -118,8 +133,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.command == "work"
             and args.work_action in ("prepare", "execute", "recover", "export", "qa")
         ) or (args.command == "opportunity" and args.opportunity_action != "show")
+        budget_mutation = (
+            args.command == "budget"
+            and args.budget_action == "policy"
+            and args.policy_action in ("prepare", "apply")
+        )
         if (
-            args.command == "decide" or eligibility_decision or runtime_mutation
+            args.command == "decide" or eligibility_decision or runtime_mutation or budget_mutation
         ) and not actor.strip():
             raise ValueError("Operator identity required")
         clock = UTCClock()
@@ -168,7 +188,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             export_directory=Path(args.directory)
             if args.command == "work" and args.work_action == "export"
             else None,
-            validate_runtime_workspace=args.command in ("work", "opportunity"),
+            validate_runtime_workspace=args.command in ("work", "opportunity", "budget"),
         )
         return run_command(args, services, sys.stdout)
     except PortError as error:

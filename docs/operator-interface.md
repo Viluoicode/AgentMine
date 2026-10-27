@@ -213,3 +213,16 @@ different policy/ledger conflicts, invalid budgets rejected before file creation
 fixture Superteam ingestion through the CLI, exact raw retention, deduplication and
 uninitialized-workspace/missing-key guards before source I/O. No dependency was
 installed and no production read or paid model call was made.
+
+## Audited local budget policy control (F02-B4-1)
+
+`budget show` displays the current ledger, commitments, recorded actuals and unknown
+cost/recovery classifications. `budget policy prepare/show/apply` retains an exact
+operator-reviewed proposal and applies it only with the same actor and `--confirm`.
+Currency/timezone remain fixed. Policy changes preserve financial history and never
+resume tasks or grant spending/submission approval. Existing paid/legacy waits and
+ambiguous effects remain inspect-only.
+
+See [the B4-1 report and command examples](audits/remediation-03-b4-1-budget-control.md)
+and [ADR 0027](adr/0027-audited-local-budget-control.md) for transactions, safe retries,
+input schema and limitations. `workspace init` remains initialization, not policy reset.

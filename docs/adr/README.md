@@ -54,3 +54,5 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0025: Local Data operator CLI and approved filesystem boundaries](0025-local-data-operator-cli.md)
 
 - [0026: Approved QA criteria and conditional inspection completion](0026-operational-qa-completion.md)
+
+- [0027: Explicit local budget-policy consent and atomic application](0027-audited-local-budget-control.md)

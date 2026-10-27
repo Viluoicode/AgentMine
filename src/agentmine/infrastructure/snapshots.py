@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 from agentmine.application.contracts import (
     ai,
+    budget_control,
     data,
     execution_evidence,
     operational_qa,
@@ -56,6 +57,7 @@ class SnapshotCodec:
     def __init__(self) -> None:
         modules = (
             approval,
+            budget_control,
             operator,
             operational_qa,
             qa_contracts,
