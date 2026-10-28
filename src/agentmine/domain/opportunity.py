@@ -46,7 +46,7 @@ class _OpportunityChanges(TypedDict, total=False):
     task: Task
     execution: Execution
     deliverable: Deliverable | None
-    qa: QAResult
+    qa: QAResult | None
     approval: HumanApproval | None
     submission: Submission
     outcome: Outcome
@@ -395,6 +395,45 @@ class Opportunity:
         )
         return BudgetResumeResult(updated, decision.budget, decision)
 
+    def begin_rework(
+        self,
+        parent: Deliverable,
+        execution: Execution,
+        eligibility: Eligibility,
+        assessment: ScoringAssessment,
+    ) -> Opportunity:
+        """Guarded same-phase replacement; application verifies retained revision consent."""
+        self._require_state(OpportunityState.IN_PROGRESS)
+        if (
+            self.qa is None
+            or self.qa.deliverable != parent
+            or self.execution is None
+            or self.execution.reference != parent.execution_reference
+            or execution.task != self.task
+            or execution.reference == self.execution.reference
+            or execution.authorization.request.context.operation_reference
+            == self.execution.authorization.request.context.operation_reference
+            or execution.started_at < self.execution.started_at
+            or self.deliverable is not None
+            or self.approval is not None
+            or self.submission is not None
+            or self.outcome is not None
+            or self.payment is not None
+            or self.payment_verification is not None
+            or self.waiting_request is not None
+            or eligibility.status != EligibilityStatus.ELIGIBLE
+            or assessment.economics.potential_reward != self.potential_reward
+        ):
+            raise DomainError(ErrorCode.EVIDENCE_MISMATCH, "rework", "Matching parent required")
+        candidate = copy(self)
+        object.__setattr__(candidate, "execution", execution)
+        object.__setattr__(candidate, "eligibility", eligibility)
+        object.__setattr__(candidate, "economic_assessment", assessment.economics)
+        object.__setattr__(candidate, "expected_value", assessment.economics.expected_net_value)
+        object.__setattr__(candidate, "scoring_assessment", assessment)
+        object.__setattr__(candidate, "score", assessment.score)
+        return candidate
+
     def finish(self, deliverable: Deliverable) -> Opportunity:
         self._require_state(OpportunityState.IN_PROGRESS)
         if self.execution is None or deliverable.execution_reference != self.execution.reference:
@@ -407,7 +446,9 @@ class Opportunity:
                 "version",
                 "Rework requires a newer deliverable version",
             )
-        return self._move(OpportunityState.QA_PENDING, deliverable=deliverable)
+        return self._move(
+            OpportunityState.QA_PENDING, deliverable=deliverable, qa=None, approval=None
+        )
 
     def review_qa(self, result: QAResult) -> Opportunity:
         self._require_state(OpportunityState.QA_PENDING)

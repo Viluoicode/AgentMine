@@ -56,3 +56,5 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0026: Approved QA criteria and conditional inspection completion](0026-operational-qa-completion.md)
 
 - [0027: Explicit local budget-policy consent and atomic application](0027-audited-local-budget-control.md)
+
+- [0028: Immutable linear Data revision ownership and exact-version persistence](0028-versioned-data-rework-foundation.md)

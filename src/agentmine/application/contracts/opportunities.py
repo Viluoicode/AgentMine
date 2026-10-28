@@ -80,3 +80,31 @@ def _validate_status(is_open: bool | None, deadline: datetime | None, deadline_k
         raise DomainError(
             ErrorCode.INVALID_VALUE, "deadline", "Unknown deadline cannot carry a date"
         )
+
+
+def same_terms(left: OpportunityStatus, right: OpportunityStatus) -> bool:
+    """Compare known reviewed terms, excluding the fresh observation timestamp."""
+    return (
+        left.terms_reference is not None
+        and right.terms_reference is not None
+        and left.requirements is not None
+        and right.requirements is not None
+        and (
+            left.opportunity_reference,
+            left.source_reference,
+            left.is_open,
+            left.deadline_known,
+            left.deadline,
+            left.terms_reference,
+            left.requirements,
+        )
+        == (
+            right.opportunity_reference,
+            right.source_reference,
+            right.is_open,
+            right.deadline_known,
+            right.deadline,
+            right.terms_reference,
+            right.requirements,
+        )
+    )

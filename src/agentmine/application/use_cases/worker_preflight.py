@@ -3,7 +3,7 @@
 from dataclasses import dataclass, replace
 
 from agentmine.application.contracts.eligibility import EligibilityCheckRequest
-from agentmine.application.contracts.opportunities import OpportunityStatus
+from agentmine.application.contracts.opportunities import same_terms as same_terms
 from agentmine.application.contracts.runtime import WorkSpecification
 from agentmine.application.contracts.worker_execution import WorkerExecutionReason
 from agentmine.application.errors import ApplicationError, PortError
@@ -19,34 +19,6 @@ from agentmine.domain.opportunity import Opportunity
 from agentmine.domain.scoring import ScoringAssessment
 from agentmine.domain.values import Reference
 from agentmine.domain.work import Eligibility, EligibilityStatus
-
-
-def same_terms(left: OpportunityStatus, right: OpportunityStatus) -> bool:
-    """Compare known reviewed terms, excluding the fresh observation timestamp."""
-    return (
-        left.terms_reference is not None
-        and right.terms_reference is not None
-        and left.requirements is not None
-        and right.requirements is not None
-        and (
-            left.opportunity_reference,
-            left.source_reference,
-            left.is_open,
-            left.deadline_known,
-            left.deadline,
-            left.terms_reference,
-            left.requirements,
-        )
-        == (
-            right.opportunity_reference,
-            right.source_reference,
-            right.is_open,
-            right.deadline_known,
-            right.deadline,
-            right.terms_reference,
-            right.requirements,
-        )
-    )
 
 
 @dataclass(frozen=True, slots=True)
