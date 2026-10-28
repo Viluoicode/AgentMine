@@ -7,6 +7,7 @@ from agentmine.application.contracts.data_revision import (
     DataRevisionRequest,
     RevisionAllocation,
     RevisionFinish,
+    RevisionParent,
     RevisionStart,
     RevisionView,
 )
@@ -23,6 +24,10 @@ class RevisionRuntimeRepository(Protocol):
     """
 
     def prepare(self, request: DataRevisionRequest) -> bool: ...
+    def parent(self, execution: Reference) -> RevisionParent | None:
+        """Consistent completed run/result/deliverable and current Opportunity, no permission."""
+        ...
+
     def get_request(self, reference: Reference) -> DataRevisionRequest | None: ...
     def approve(
         self, reference: Reference, approval: DataRevisionApproval, binding: ExecutionBinding

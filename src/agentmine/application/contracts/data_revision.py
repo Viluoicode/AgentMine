@@ -4,6 +4,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
 
+from agentmine.application.contracts.data import DataResult
 from agentmine.application.contracts.opportunities import same_terms
 from agentmine.application.contracts.qa import bundle_content
 from agentmine.application.contracts.records import Versioned
@@ -48,6 +49,22 @@ def require(condition: bool, reason: RevisionReason = RevisionReason.INVALID_EVI
 class RevisionTrigger(StrEnum):
     QA = "qa"
     OPERATOR = "operator"
+
+
+@dataclass(frozen=True, slots=True)
+class RevisionParent:
+    run: WorkerRun
+    deliverable: Deliverable
+    snapshot: Versioned[Opportunity]
+    result: DataResult
+
+    def __post_init__(self) -> None:
+        WorkerResult(self.run, self.result)
+        require(
+            self.deliverable.execution_reference == self.run.binding.execution_reference
+            and self.deliverable.reference == self.run.binding.deliverable_reference
+            and self.deliverable.content_reference == bundle_content(self.result).reference
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -176,6 +193,19 @@ class RevisionRun:
             self.worker.binding == self.allocation.binding
             and self.worker.specification == self.allocation.request.specification
         )
+
+    @property
+    def started_snapshot(self) -> Versioned[Opportunity]:
+        request = self.allocation.request
+        evidence = request.specification.execution_evidence
+        assert evidence is not None
+        updated = request.parent_snapshot.value.begin_rework(
+            request.parent_deliverable,
+            self.worker.plan.execution,
+            evidence.evaluation.eligibility,
+            evidence.evaluation.scoring_assessment,
+        )
+        return Versioned(updated, request.parent_snapshot.revision + 1)
 
 
 @dataclass(frozen=True, slots=True)

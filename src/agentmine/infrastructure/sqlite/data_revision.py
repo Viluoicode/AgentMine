@@ -10,6 +10,7 @@ from agentmine.application.contracts.data_revision import (
     DataRevisionRequest,
     RevisionAllocation,
     RevisionFinish,
+    RevisionParent,
     RevisionReason,
     RevisionRun,
     RevisionStart,
@@ -39,6 +40,55 @@ from agentmine.infrastructure.sqlite.runtime import SQLiteWorkerRuntimeRepositor
 @dataclass(frozen=True, slots=True)
 class SQLiteRevisionRuntimeRepository:
     database: SQLiteDatabase
+
+    def parent(self, execution: Reference) -> RevisionParent | None:
+        with self.database.transaction() as connection:
+            revision = self._value(connection, "revision_run", execution.value, RevisionRun)
+            if revision is None:
+                worker = SQLiteWorkerRuntimeRepository(self.database)._run(connection, execution)
+                marker = "runtime_finish"
+            else:
+                require(
+                    self._allocation(connection, revision.allocation.reference)
+                    == revision.allocation
+                )
+                worker = revision.worker
+                marker = "revision_finish"
+            if worker is None:
+                return None
+            require(
+                not SQLiteWorkerRuntimeRepository(self.database)._has_ai_evidence(
+                    connection, worker.binding
+                ),
+                RevisionReason.UNKNOWN_EFFECT,
+            )
+            deliverable = self._value(connection, marker, execution.value, Deliverable)
+            result = self._value(connection, "data_result", execution.value, DataResult)
+            snapshot = self.database.read(
+                connection,
+                "opportunity",
+                worker.specification.task.opportunity_reference.value,
+                Opportunity,
+            )
+            require(deliverable is not None and result is not None and snapshot is not None)
+            assert deliverable is not None and result is not None and snapshot is not None
+            require(
+                self._value(connection, "execution", execution.value, Execution)
+                == worker.plan.execution
+                and self._value(connection, "data_plan", execution.value, DataPlan) == worker.plan
+                and self._value(
+                    connection,
+                    "deliverable",
+                    composite_key(deliverable.reference.value, deliverable.version),
+                    Deliverable,
+                )
+                == deliverable
+                and self._value(
+                    connection, "content", deliverable.content_reference.value, ReferencedText
+                )
+                == bundle_content(result)
+            )
+            return RevisionParent(worker, deliverable, snapshot, result)
 
     def _value[T](
         self, connection: sqlite3.Connection, kind: str, key: str, cls: type[T]
