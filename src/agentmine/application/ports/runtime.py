@@ -14,7 +14,15 @@ from agentmine.application.contracts.runtime import (
 from agentmine.domain.values import Reference
 
 
-class WorkerRuntimeRepository(Protocol):
+class WorkerRunReader(Protocol):
+    """Read-only run history, shared by first-version and revision projections."""
+
+    def get_specification(self, reference: Reference) -> WorkSpecification | None: ...
+    def get_run(self, execution_reference: Reference) -> WorkerRun | None: ...
+    def inspect(self, execution_reference: Reference) -> RuntimeStatus | None: ...
+
+
+class WorkerRuntimeRepository(WorkerRunReader, Protocol):
     """Application owns identities/bindings; adapters own atomic persistence.
 
     Equal immutable operations return False; conflicting identities/revisions raise

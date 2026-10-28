@@ -291,6 +291,7 @@ class SQLiteWorkerRuntimeRepository:
             None if result is None else result.value,
             completed is not None,
             self._has_ai_evidence(connection, run.binding),
+            None if completed is None else completed.value,
         )
 
     def _has_ai_evidence(self, connection: sqlite3.Connection, binding: ExecutionBinding) -> bool:

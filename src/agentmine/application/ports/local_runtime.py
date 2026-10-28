@@ -5,6 +5,7 @@ from typing import Protocol
 from agentmine.application.contracts.data import DataArtifact, DataSource
 from agentmine.application.contracts.local_runtime import ApprovedDataInput, ArtifactExport
 from agentmine.domain.values import Reference
+from agentmine.domain.work import Deliverable
 
 
 class DataInputReader(Protocol):
@@ -13,5 +14,10 @@ class DataInputReader(Protocol):
 
 class ArtifactExporter(Protocol):
     def export(
-        self, execution: Reference, content: Reference, artifacts: tuple[DataArtifact, ...]
+        self,
+        execution: Reference,
+        content: Reference,
+        artifacts: tuple[DataArtifact, ...],
+        *,
+        deliverable: Deliverable | None = None,
     ) -> ArtifactExport: ...

@@ -13,7 +13,7 @@ from agentmine.application.errors import (
 from agentmine.application.ports.operational_qa import OperationalQARepository
 from agentmine.application.ports.qa import QAJournal
 from agentmine.application.ports.repositories import ExecutionRepository, OpportunityRepository
-from agentmine.application.ports.runtime import WorkerRuntimeRepository
+from agentmine.application.ports.runtime import WorkerRunReader
 from agentmine.application.ports.services import Clock
 from agentmine.application.use_cases.context import check_content, load, require_state
 from agentmine.application.use_cases.deliverable_qa import DeliverableQA
@@ -29,7 +29,7 @@ def invalid(message: str) -> PortError:
 
 @dataclass(frozen=True, slots=True)
 class RunOperationalDataQA:
-    runtime: WorkerRuntimeRepository
+    runtime: WorkerRunReader
     opportunities: OpportunityRepository
     executions: ExecutionRepository
     repository: OperationalQARepository
@@ -85,9 +85,11 @@ class RunOperationalDataQA:
             raise invalid("Completed deterministic execution and retained result required")
         current = view.opportunity_snapshot
         require_state(current.value, OpportunityState.QA_PENDING)
-        deliverable = self.executions.get_deliverable(run.binding.deliverable_reference, 1)
+        deliverable = view.deliverable
         if (
             deliverable is None
+            or self.executions.get_deliverable(deliverable.reference, deliverable.version)
+            != deliverable
             or current.value.deliverable != deliverable
             or current.value.execution != run.plan.execution
             or self.executions.get(execution) != run.plan.execution
@@ -133,7 +135,7 @@ class RunOperationalDataQA:
 
 @dataclass(frozen=True, slots=True)
 class GetOperationalQAStatus:
-    runtime: WorkerRuntimeRepository
+    runtime: WorkerRunReader
     repository: OperationalQARepository
     journal: QAJournal
 

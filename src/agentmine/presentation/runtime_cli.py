@@ -3,18 +3,16 @@
 import argparse
 import json
 from collections.abc import Callable
-from dataclasses import dataclass, fields, is_dataclass
-from datetime import datetime, timedelta, tzinfo
-from decimal import Decimal
-from enum import Enum
+from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 from typing import TextIO
 
+from agentmine.application.contracts.data_revision import RevisionError
 from agentmine.application.contracts.operational_qa import OperationalQAStatus
 from agentmine.application.contracts.runtime import (
     ExecutionBinding,
     RuntimeStatus,
-    WorkSpecification,
 )
 from agentmine.application.contracts.worker_execution import (
     ExecuteWorkerRequest,
@@ -45,7 +43,14 @@ from agentmine.domain.scoring import ScoringPolicy
 from agentmine.domain.values import Reference
 from agentmine.domain.work import TaskType
 from agentmine.presentation.eligibility_inputs import read_eligibility_request
+from agentmine.presentation.revision_cli import (
+    RevisionServices,
+    add_revision_parsers,
+    run_revision_command,
+)
 from agentmine.presentation.runtime_inputs import read_economics, read_prepare, read_scoring
+from agentmine.presentation.runtime_views import encode as encode
+from agentmine.presentation.runtime_views import specification_view as specification_view
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,6 +68,7 @@ class RuntimeServices:
     export: ExportDataArtifacts
     qa: RunOperationalDataQA
     qa_status: GetOperationalQAStatus
+    revisions: RevisionServices | None = None
 
 
 def add_runtime_parsers(commands: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -85,6 +91,7 @@ def add_runtime_parsers(commands: argparse._SubParsersAction[argparse.ArgumentPa
             parser.add_argument("--description", required=True)
     work = commands.add_parser("work", help="Deterministic Data and zero-AI QA; never submission")
     actions = work.add_subparsers(dest="work_action", required=True)
+    add_revision_parsers(actions)
     prepare = actions.add_parser("prepare")
     for name in ("opportunity", "spec-id", "inputs", "input-root", "facts", "evaluation"):
         prepare.add_argument("--" + name, required=True)
@@ -111,59 +118,14 @@ def add_runtime_parsers(commands: argparse._SubParsersAction[argparse.ArgumentPa
             parser.add_argument("--directory", required=True)
 
 
-def encode(value: object) -> object:
-    if isinstance(value, Enum):
-        return value.value
-    if value is None or isinstance(value, (str, int, bool)):
-        return value
-    if isinstance(value, (Decimal, tzinfo)):
-        return str(value)
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, timedelta):
-        return value.total_seconds()
-    if isinstance(value, (tuple, list, frozenset)):
-        return [encode(item) for item in value]
-    if is_dataclass(value) and not isinstance(value, type):
-        return {field.name: encode(getattr(value, field.name)) for field in fields(value)}
-    raise TypeError("Unsupported operator display type")
-
-
-def specification_view(spec: WorkSpecification) -> dict[str, object]:
-    return {
-        "specification_id": spec.reference.value,
-        "task": encode(spec.task),
-        "actor": spec.actor.value,
-        "approved_at": spec.approved_at.isoformat(),
-        "ledger": spec.ledger_reference.value,
-        "source_context": encode(spec.source_context),
-        "inputs": [
-            {
-                "id": item.reference.value,
-                "locator": item.locator,
-                "format": item.format.value,
-                "sha256": item.digest,
-                "bytes": len(item.content.encode("utf-8")),
-            }
-            for item in spec.sources
-        ],
-        "columns": encode(spec.columns),
-        "constraints": encode(spec.constraints),
-        "unique_by": list(spec.unique_by),
-        "min_records": spec.min_records,
-        "max_records": spec.max_records,
-        "eligibility_and_economic_forecast_evidence": encode(spec.execution_evidence),
-        "approved_acceptance_criteria": encode(spec.acceptance),
-        "preparation_dispatches_work": False,
-        "specification_grants_submission_approval": False,
-    }
-
-
 def runtime_view(view: RuntimeStatus, qa: OperationalQAStatus) -> dict[str, object]:
     result = view.result
     report = qa.report
+    is_current = view.opportunity_snapshot.value.execution == view.run.plan.execution
     action = (
-        "QA_REQUIRED"
+        "HISTORICAL_ONLY"
+        if not is_current
+        else "QA_REQUIRED"
         if qa.binding is None
         else "RETRY_SAME_INSPECTION"
         if report is None or not qa.applied
@@ -177,6 +139,10 @@ def runtime_view(view: RuntimeStatus, qa: OperationalQAStatus) -> dict[str, obje
     )
     return {
         "execution_id": view.run.binding.execution_reference.value,
+        "requested_execution_is_current": is_current,
+        "deliverable": encode(view.deliverable),
+        "current_execution": encode(view.opportunity_snapshot.value.execution),
+        "current_deliverable": encode(view.opportunity_snapshot.value.deliverable),
         "binding": encode(view.run.binding),
         "opportunity_state": view.opportunity_snapshot.value.state.name,
         "opportunity_revision": view.opportunity_snapshot.revision,
@@ -211,6 +177,8 @@ def runtime_view(view: RuntimeStatus, qa: OperationalQAStatus) -> dict[str, obje
             if report is None
             else {
                 "reference": report.reference.value,
+                "deliverable": encode(report.deliverable),
+                "historical": not is_current,
                 "outcome": report.outcome.value,
                 "checked_at": report.checked_at.isoformat(),
                 "findings": encode(report.findings),
@@ -223,6 +191,12 @@ def runtime_view(view: RuntimeStatus, qa: OperationalQAStatus) -> dict[str, obje
 
 def run_runtime_command(args: argparse.Namespace, services: RuntimeServices, output: TextIO) -> int:
     try:
+        if args.command == "work" and args.work_action == "revision":
+            if services.revisions is None:
+                raise PortError(
+                    PortErrorCode.UNSUPPORTED, "revision", "Revision services unavailable"
+                )
+            return run_revision_command(args, services.revisions, output)
         data: dict[str, object]
         if args.command == "opportunity":
             ref = Reference(args.opportunity)
@@ -287,6 +261,14 @@ def run_runtime_command(args: argparse.Namespace, services: RuntimeServices, out
                     services.status.execute(Reference(args.execution_id)),
                     services.qa_status.execute(Reference(args.execution_id)),
                 )
+                if services.revisions is not None:
+                    revision = services.revisions.for_execution.execute(
+                        Reference(args.execution_id)
+                    )
+                    if revision is not None:
+                        from agentmine.presentation.revision_cli import revision_view
+
+                        data["revision"] = revision_view(revision)
             elif action == "qa":
                 if not args.confirm:
                     raise PortError(
@@ -297,7 +279,11 @@ def run_runtime_command(args: argparse.Namespace, services: RuntimeServices, out
                 report = services.qa.execute(
                     Reference(args.execution_id), Reference(args.inspection_id)
                 )
+                inspected = services.status.execute(Reference(args.execution_id))
                 data = {
+                    "historical": inspected.opportunity_snapshot.value.execution
+                    != inspected.run.plan.execution,
+                    "deliverable": encode(report.deliverable),
                     "qa_outcome": report.outcome.value,
                     "inspection_id": report.reference.value,
                     "findings": encode(report.findings),
@@ -361,6 +347,14 @@ def run_runtime_command(args: argparse.Namespace, services: RuntimeServices, out
                 return 0 if outcome.status == WorkerExecutionStatus.COMPLETED else 1
         print(json.dumps(data, ensure_ascii=True), file=output)
         return 0
+    except RevisionError as error:
+        print(
+            json.dumps(
+                {"status": "failed", "code": "revision_conflict", "reason": error.reason.value}
+            ),
+            file=output,
+        )
+        return 1
     except DomainError:
         raise
     except (OSError, ValueError, ArithmeticError, RecursionError):

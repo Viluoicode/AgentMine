@@ -128,10 +128,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             # Validate every operator-supplied business limit before creating any file.
             workspace_policy(args)
         actor = os.environ.get("AGENTMINE_OPERATOR_ID", "")
+        revision_action = (
+            args.revision_action
+            if args.command == "work" and args.work_action == "revision"
+            else None
+        )
         eligibility_decision = args.command == "eligibility" and args.eligibility_action == "decide"
         runtime_mutation = (
             args.command == "work"
-            and args.work_action in ("prepare", "execute", "recover", "export", "qa")
+            and (
+                args.work_action in ("prepare", "execute", "recover", "export", "qa")
+                or revision_action in ("prepare", "approve", "execute", "recover")
+            )
         ) or (args.command == "opportunity" and args.opportunity_action != "show")
         budget_mutation = (
             args.command == "budget"
@@ -160,7 +168,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ) and not (
                     (
                         args.command == "work"
-                        and args.work_action in ("prepare", "execute", "recover", "qa")
+                        and (
+                            args.work_action in ("prepare", "execute", "recover", "qa")
+                            or revision_action in ("prepare", "approve", "execute", "recover")
+                        )
                     )
                     or (args.command == "opportunity" and args.opportunity_action != "show")
                 ):
@@ -183,7 +194,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             source,
             create_workspace=args.command == "workspace" and args.workspace_action == "init",
             input_root=Path(args.input_root)
-            if args.command == "work" and args.work_action == "prepare"
+            if args.command == "work"
+            and (args.work_action == "prepare" or revision_action == "prepare")
             else None,
             export_directory=Path(args.directory)
             if args.command == "work" and args.work_action == "export"

@@ -41,6 +41,14 @@ from agentmine.infrastructure.sqlite.runtime import SQLiteWorkerRuntimeRepositor
 class SQLiteRevisionRuntimeRepository:
     database: SQLiteDatabase
 
+    def for_execution(self, execution: Reference) -> Reference | None:
+        row = self.database.get("revision_run", execution.value, RevisionRun)
+        return None if row is None else row.value.allocation.reference
+
+    def specification(self, reference: Reference) -> WorkSpecification | None:
+        row = self.database.get("revision_specification", reference.value, WorkSpecification)
+        return None if row is None else row.value
+
     def parent(self, execution: Reference) -> RevisionParent | None:
         with self.database.transaction() as connection:
             revision = self._value(connection, "revision_run", execution.value, RevisionRun)

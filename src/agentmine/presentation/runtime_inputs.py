@@ -50,7 +50,11 @@ def read_json(path: Path) -> object:
         raw = stream.read(64_001)
     if len(raw) > 64_000:
         raise ValueError("Input manifest exceeds 64000 bytes")
-    return json.loads(raw, object_pairs_hook=pairs)
+    return json.loads(raw, object_pairs_hook=pairs, parse_constant=invalid_constant)
+
+
+def invalid_constant(value: str) -> object:
+    raise ValueError("Non-JSON numeric constant")
 
 
 def text(value: object) -> str:

@@ -11,6 +11,7 @@ from agentmine.application.contracts.data import DataArtifact
 from agentmine.application.contracts.local_runtime import ArtifactExport, ExportedArtifact
 from agentmine.application.errors import PortError, PortErrorCode
 from agentmine.domain.values import Reference
+from agentmine.domain.work import Deliverable
 from agentmine.infrastructure.local_data_inputs import reject_links
 
 
@@ -19,7 +20,12 @@ class LocalArtifactExporter:
     directory: Path | None
 
     def export(
-        self, execution: Reference, content: Reference, artifacts: tuple[DataArtifact, ...]
+        self,
+        execution: Reference,
+        content: Reference,
+        artifacts: tuple[DataArtifact, ...],
+        *,
+        deliverable: Deliverable | None = None,
     ) -> ArtifactExport:
         try:
             if self.directory is None:
@@ -49,6 +55,18 @@ class LocalArtifactExporter:
                     for item in exported
                 ],
             }
+            if deliverable is not None:
+                if (
+                    deliverable.execution_reference != execution
+                    or deliverable.content_reference != content
+                ):
+                    raise ValueError("Export deliverable binding mismatch")
+                manifest["deliverable"] = {
+                    "lineage": deliverable.reference.value,
+                    "version": deliverable.version,
+                    "execution": execution.value,
+                    "content_reference": content.value,
+                }
             payloads["manifest.json"] = (
                 json.dumps(manifest, sort_keys=True, ensure_ascii=True) + "\n"
             ).encode("utf-8")

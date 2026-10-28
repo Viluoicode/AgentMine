@@ -20,7 +20,7 @@ from agentmine.application.errors import (
 from agentmine.application.ports.eligibility_review import EligibilityReviewRepository
 from agentmine.application.ports.local_runtime import ArtifactExporter, DataInputReader
 from agentmine.application.ports.repositories import EvaluationRepository, OpportunityRepository
-from agentmine.application.ports.runtime import WorkerRuntimeRepository
+from agentmine.application.ports.runtime import WorkerRunReader, WorkerRuntimeRepository
 from agentmine.application.ports.services import Clock, OpportunitySource
 from agentmine.application.use_cases.context import load, observe_status, require_state
 from agentmine.application.use_cases.worker_execution import ExecuteWorkerTask
@@ -113,7 +113,7 @@ class PrepareDataSpecification:
 
 @dataclass(frozen=True, slots=True)
 class GetDataSpecification:
-    runtime: WorkerRuntimeRepository
+    runtime: WorkerRunReader
 
     def execute(self, reference: Reference) -> WorkSpecification:
         value = self.runtime.get_specification(reference)
@@ -126,7 +126,7 @@ class GetDataSpecification:
 
 @dataclass(frozen=True, slots=True)
 class GetWorkerRuntime:
-    runtime: WorkerRuntimeRepository
+    runtime: WorkerRunReader
 
     def execute(self, reference: Reference) -> RuntimeStatus:
         value = self.runtime.inspect(reference)
@@ -149,16 +149,23 @@ class RecoverDataExecution:
 
 @dataclass(frozen=True, slots=True)
 class ExportDataArtifacts:
-    runtime: WorkerRuntimeRepository
+    runtime: WorkerRunReader
     exporter: ArtifactExporter
     operator: Reference
 
     def execute(self, reference: Reference) -> ArtifactExport:
         view = GetWorkerRuntime(self.runtime).execute(reference)
-        if view.run.specification.actor != self.operator or view.result is None:
+        if (
+            view.run.specification.actor != self.operator
+            or view.result is None
+            or view.deliverable is None
+        ):
             raise PortError(
                 PortErrorCode.CONFLICT, "export", "Matching operator and retained result required"
             )
         return self.exporter.export(
-            reference, bundle_content(view.result).reference, view.result.artifacts
+            reference,
+            bundle_content(view.result).reference,
+            view.result.artifacts,
+            deliverable=view.deliverable,
         )

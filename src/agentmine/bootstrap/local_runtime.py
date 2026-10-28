@@ -4,6 +4,16 @@ from pathlib import Path
 
 from agentmine.application.budget_manager import BudgetManager
 from agentmine.application.ports.services import Clock, OpportunitySource
+from agentmine.application.use_cases.data_history import (
+    GetCompletedDataParent,
+    GetRevisionForExecution,
+    LocalDataHistory,
+)
+from agentmine.application.use_cases.data_revision import (
+    ApproveDataRevision,
+    GetDataRevision,
+    PrepareDataRevision,
+)
 from agentmine.application.use_cases.deliverable_qa import DeliverableQA
 from agentmine.application.use_cases.eligibility import CheckEligibility
 from agentmine.application.use_cases.local_runtime import (
@@ -19,6 +29,10 @@ from agentmine.application.use_cases.operational_qa import (
     RunOperationalDataQA,
 )
 from agentmine.application.use_cases.planning import EvaluateOpportunity, PlanTask, ScoreOpportunity
+from agentmine.application.use_cases.revision_execution import (
+    ExecuteDataRevision,
+    RecoverDataRevision,
+)
 from agentmine.application.use_cases.worker_execution import ExecuteWorkerTask
 from agentmine.application.use_cases.worker_preflight import WorkerPreflight
 from agentmine.domain.eligibility_rules import EligibilityEngine
@@ -27,6 +41,7 @@ from agentmine.infrastructure.local_artifact_export import LocalArtifactExporter
 from agentmine.infrastructure.local_data_inputs import LocalDataInputReader
 from agentmine.infrastructure.sqlite.approval import SQLiteApprovalRepository
 from agentmine.infrastructure.sqlite.data import SQLiteDataJournal
+from agentmine.infrastructure.sqlite.data_revision import SQLiteRevisionRuntimeRepository
 from agentmine.infrastructure.sqlite.database import SQLiteDatabase
 from agentmine.infrastructure.sqlite.eligibility_review import SQLiteEligibilityReviewRepository
 from agentmine.infrastructure.sqlite.evaluations import SQLiteEvaluationRepository
@@ -36,6 +51,7 @@ from agentmine.infrastructure.sqlite.operational_qa import SQLiteOperationalQARe
 from agentmine.infrastructure.sqlite.opportunities import SQLiteOpportunityRepository
 from agentmine.infrastructure.sqlite.qa import SQLiteQAJournal
 from agentmine.infrastructure.sqlite.runtime import SQLiteWorkerRuntimeRepository
+from agentmine.presentation.revision_cli import RevisionServices
 from agentmine.presentation.runtime_cli import RuntimeServices
 
 
@@ -58,12 +74,19 @@ def compose_local_runtime(
         clock,
         SQLiteApprovalRepository(database),
     )
+    data_journal = SQLiteDataJournal(database)
+    revision_repository = SQLiteRevisionRuntimeRepository(database)
+    history = LocalDataHistory(runtime, revision_repository, opportunities)
+    revision_get = GetDataRevision(revision_repository, operator, ledger_reference)
+    revision_execute = ExecuteDataRevision(
+        revision_repository, opportunities, evaluations, budget, data_journal, source, operator
+    )
     execution = ExecuteWorkerTask(
         opportunities,
         evaluations,
         runtime,
         budget,
-        SQLiteDataJournal(database),
+        data_journal,
         source,
         operator,
         reviews,
@@ -89,13 +112,13 @@ def compose_local_runtime(
             ledger_reference,
             reviews,
         ),
-        GetDataSpecification(runtime),
-        GetWorkerRuntime(runtime),
+        GetDataSpecification(history),
+        GetWorkerRuntime(history),
         execution,
         RecoverDataExecution(runtime, execution),
-        ExportDataArtifacts(runtime, LocalArtifactExporter(export_directory), operator),
+        ExportDataArtifacts(history, LocalArtifactExporter(export_directory), operator),
         RunOperationalDataQA(
-            runtime,
+            history,
             opportunities,
             executions,
             qa_repository,
@@ -106,5 +129,30 @@ def compose_local_runtime(
             operator,
             ledger_reference,
         ),
-        GetOperationalQAStatus(runtime, qa_repository, qa_journal),
+        GetOperationalQAStatus(history, qa_repository, qa_journal),
+        RevisionServices(
+            PrepareDataRevision(
+                revision_repository,
+                opportunities,
+                source,
+                clock,
+                operator,
+                ledger_reference,
+                LocalDataInputReader(input_root),
+            ),
+            revision_get,
+            ApproveDataRevision(
+                revision_repository,
+                opportunities,
+                evaluations,
+                source,
+                clock,
+                operator,
+                ledger_reference,
+            ),
+            revision_execute,
+            RecoverDataRevision(revision_execute),
+            GetCompletedDataParent(revision_repository, operator, ledger_reference),
+            GetRevisionForExecution(revision_repository, revision_get),
+        ),
     )

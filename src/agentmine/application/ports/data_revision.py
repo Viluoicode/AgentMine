@@ -11,7 +11,11 @@ from agentmine.application.contracts.data_revision import (
     RevisionStart,
     RevisionView,
 )
-from agentmine.application.contracts.runtime import ExecutionBinding, WorkerResult
+from agentmine.application.contracts.runtime import (
+    ExecutionBinding,
+    WorkerResult,
+    WorkSpecification,
+)
 from agentmine.domain.values import Reference
 
 
@@ -29,6 +33,8 @@ class RevisionRuntimeRepository(Protocol):
         ...
 
     def get_request(self, reference: Reference) -> DataRevisionRequest | None: ...
+    def for_execution(self, execution: Reference) -> Reference | None: ...
+    def specification(self, reference: Reference) -> WorkSpecification | None: ...
     def approve(
         self, reference: Reference, approval: DataRevisionApproval, binding: ExecutionBinding
     ) -> RevisionAllocation: ...

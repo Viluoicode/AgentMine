@@ -26,7 +26,7 @@ from agentmine.domain.finance import CostCategory
 from agentmine.domain.opportunity import Opportunity, OpportunityState
 from agentmine.domain.spending import AuthorizationStatus, CostRecord
 from agentmine.domain.values import Reference, require_aware_timestamp, require_reference
-from agentmine.domain.work import Deliverable, Execution, Task, TaskType
+from agentmine.domain.work import Deliverable, Execution, QAResult, Task, TaskType
 
 
 def invalid(field: str) -> DomainError:
@@ -400,6 +400,9 @@ class RuntimeStatus:
     result: DataResult | None
     finished: bool
     ai_evidence_present: bool = False
+    deliverable: Deliverable | None = None
+    expected_active_qa: QAResult | None = None
+    expected_active_revision: int | None = None
 
     @property
     def reason(self) -> RecoveryReason:
@@ -409,9 +412,13 @@ class RuntimeStatus:
             return RecoveryReason.NONE
         op = self.opportunity_snapshot.value
         if (
-            op.state != OpportunityState.IN_PROGRESS
+            (
+                self.expected_active_revision is not None
+                and self.opportunity_snapshot.revision != self.expected_active_revision
+            )
+            or op.state != OpportunityState.IN_PROGRESS
             or op.execution != self.run.plan.execution
-            or op.qa is not None
+            or op.qa != self.expected_active_qa
         ):
             return RecoveryReason.STATE_CHANGED
         return (
