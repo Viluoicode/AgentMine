@@ -431,8 +431,14 @@ def corrupt_revision(cli: CLI, identity: str) -> None:
 
 
 def test_v2_fail_then_v3_pass_and_historical_qa_readback(cli: CLI) -> None:
+    from unittest.mock import patch
+
+    from agentmine.application.workers.data import DataWorker
+
     ready(cli)
     assert execute(cli)[0] == 0
+    completed = cli.command("work", "revision", "show", "--revision-id", "revision-2")[1]
+    assert completed["status"] == "COMPLETED" and completed["recovery_reason"] == "NONE"
     corrupt_revision(cli, "revision-2")
     assert (
         cli.command(
@@ -475,6 +481,19 @@ def test_v2_fail_then_v3_pass_and_historical_qa_readback(cli: CLI) -> None:
     )
     assert cli.world.current() == before
     assert before.deliverable is not None and before.deliverable.version == 3
+    with cli.world.database.transaction() as connection:
+        stored = tuple(connection.iterdump())
+    with patch.object(DataWorker, "execute", side_effect=AssertionError("read-only history")):
+        for number in (2, 3):
+            shown = cli.command("work", "revision", "show", "--revision-id", f"revision-{number}")[
+                1
+            ]
+            assert shown["status"] == "COMPLETED" and shown["recovery_reason"] == "NONE"
+            assert shown["execution_history_completed"] is True
+            deliverable = shown["deliverable"]
+            assert isinstance(deliverable, dict) and deliverable["version"] == number
+    with cli.world.database.transaction() as connection:
+        assert tuple(connection.iterdump()) == stored
 
 
 def test_reopen_recover_uses_original_allocation_without_worker(cli: CLI) -> None:
@@ -729,3 +748,65 @@ def test_active_revision_status_preserves_parent_qa_and_checks_revision(cli: CLI
         cli.command("work", "revision", "recover", "--revision-id", "revision-2", "--confirm")[0]
         != 0
     )
+
+
+@pytest.mark.parametrize("retained", [False, True])
+def test_revision_show_matches_exact_started_snapshot_without_writes(
+    cli: CLI, retained: bool
+) -> None:
+    from unittest.mock import patch
+
+    from agentmine.application.contracts.records import OpportunitySave
+    from agentmine.application.errors import PortError, PortErrorCode
+    from agentmine.application.workers.data import DataWorker
+    from agentmine.domain.values import Reference
+    from agentmine.infrastructure.sqlite.data_revision import SQLiteRevisionRuntimeRepository
+    from agentmine.infrastructure.sqlite.opportunities import SQLiteOpportunityRepository
+
+    ready(cli)
+    if retained:
+        with patch.object(
+            SQLiteRevisionRuntimeRepository,
+            "finish",
+            side_effect=PortError(PortErrorCode.UNAVAILABLE, "finish", "injected"),
+        ):
+            assert execute(cli)[1]["command_status"] == "RECOVERABLE"
+    else:
+        with patch.object(DataWorker, "execute", side_effect=RuntimeError("interrupted")):
+            assert execute(cli)[1]["command_status"] == "RECOVERABLE"
+
+    def dump() -> tuple[str, ...]:
+        with cli.world.database.transaction() as connection:
+            return tuple(connection.iterdump())
+
+    show = ("work", "revision", "show", "--revision-id", "revision-2")
+    status = ("work", "status", "--execution-id", "revision-2-exec")
+    checkpoint = "RESULT_RETAINED" if retained else "IN_PROGRESS"
+    reason = "FINISH_PENDING" if retained else "RESULT_MISSING"
+    before = dump()
+    with patch.object(DataWorker, "execute", side_effect=AssertionError("inspection is read-only")):
+        shown = cli.command(*show)[1]
+        assert shown["status"] == checkpoint and shown["recovery_reason"] == reason
+        assert cli.command(*status)[1]["recovery_reason"] == reason
+    assert dump() == before
+
+    repository = SQLiteOpportunityRepository(cli.world.database)
+    current = repository.get(Reference("op"))
+    assert current is not None
+    # Same aggregate and execution, newer revision: exact-start authority is stale.
+    repository.save(OpportunitySave(current.value, current.revision))
+    before = dump()
+    with patch.object(DataWorker, "execute", side_effect=AssertionError("no stale dispatch")):
+        shown = cli.command(*show)[1]
+        assert shown["status"] == checkpoint
+        assert shown["recovery_reason"] == "STALE_PARENT"
+        observed = cli.command(*status)[1]
+        assert observed["execution_control"] == "BLOCKED"
+        assert observed["recovery_reason"] == "STATE_CHANGED"
+        recovered = cli.command(
+            "work", "revision", "recover", "--revision-id", "revision-2", "--confirm"
+        )
+        assert recovered[0] == 1
+        assert recovered[1]["command_status"] == "BLOCKED"
+        assert recovered[1]["reason"] == "STATE_CONFLICT"
+    assert dump() == before  # Includes ledger, actuals, commitments, claims and all history.

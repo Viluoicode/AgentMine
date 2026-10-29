@@ -634,8 +634,7 @@ class SQLiteRevisionRuntimeRepository:
                 ):
                     reason = RevisionReason.UNKNOWN_EFFECT
                 elif (run is None and op != request.parent_snapshot) or (
-                    run is not None
-                    and (op is None or op.value.execution != run.worker.plan.execution)
+                    run is not None and op != run.started_snapshot
                 ):
                     reason = RevisionReason.STALE_PARENT
             return RevisionView(
