@@ -52,6 +52,14 @@ class SubmitTask:
     ) -> SubmissionResult:
         previous = load(self.opportunities, reference)
         opportunity = previous.value
+        if opportunity.approval is not None and opportunity.approval.target.value.startswith(
+            "submission-context:"
+        ):
+            raise PortError(
+                PortErrorCode.UNSUPPORTED,
+                "submit",
+                "Offline context consent has no handoff or dispatch capability",
+            )
         original = self.submissions.get_request(submission_reference)
         if original is not None and original.mode != mode:
             raise PortError(PortErrorCode.CONFLICT, "submit", "Submission mode changed")

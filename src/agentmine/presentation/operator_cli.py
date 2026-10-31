@@ -43,6 +43,12 @@ from agentmine.presentation.runtime_cli import (
     add_runtime_parsers,
     run_runtime_command,
 )
+from agentmine.presentation.submission_context_cli import (
+    SubmissionContextServices,
+    add_submission_context_parsers,
+    envelope_view,
+    run_submission_context,
+)
 
 
 def quoted(value: str) -> str:
@@ -210,6 +216,7 @@ class OperatorServices:
     eligibility_resolve: ResolveEligibilityReview
     runtime: RuntimeServices | None = None
     budget: BudgetServices | None = None
+    submission_context: SubmissionContextServices | None = None
 
 
 def render_eligibility_review(record: RecordedEligibilityReview) -> str:
@@ -255,6 +262,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--archive", help="Existing raw archive path for live refresh")
     commands = result.add_subparsers(dest="command", required=True)
     add_budget_parsers(commands)
+    add_submission_context_parsers(commands)
     commands.add_parser("dashboard")
     workspace = commands.add_parser("workspace", help="Initialize or load a local workspace")
     workspace_commands = workspace.add_subparsers(dest="workspace_action", required=True)
@@ -326,6 +334,12 @@ def parser() -> argparse.ArgumentParser:
 
 def run_command(args: argparse.Namespace, services: OperatorServices, output: TextIO) -> int:
     try:
+        if args.command == "submission":
+            if services.submission_context is None:
+                raise PortError(
+                    PortErrorCode.UNSUPPORTED, "submission_context", "Context storage unavailable"
+                )
+            return run_submission_context(args, services.submission_context, output)
         if args.command == "budget":
             if services.budget is None:
                 raise PortError(
@@ -464,9 +478,22 @@ def run_command(args: argparse.Namespace, services: OperatorServices, output: Te
                 Reference(args.destination),
             )
             print(render_review(review), file=output)
+            resolved = services.get_review.execute(review.reference).submission_envelope
+            if resolved is not None:
+                print(
+                    "SUBMISSION ENVELOPE | "
+                    + json.dumps(envelope_view(resolved), ensure_ascii=True),
+                    file=output,
+                )
         elif args.command == "show-review":
             recorded = services.get_review.execute(Reference(args.review_id))
             print(render_review(recorded.review), file=output)
+            if recorded.submission_envelope is not None:
+                print(
+                    "SUBMISSION ENVELOPE | "
+                    + json.dumps(envelope_view(recorded.submission_envelope), ensure_ascii=True),
+                    file=output,
+                )
             decision = recorded.decision
             print(
                 "Recorded decision: " + ("PENDING" if decision is None else quoted(str(decision))),

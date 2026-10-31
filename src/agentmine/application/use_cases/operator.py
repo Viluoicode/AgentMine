@@ -12,6 +12,7 @@ from agentmine.application.ports.repositories import (
     OpportunityRepository,
 )
 from agentmine.application.ports.services import Clock, OpportunitySource
+from agentmine.application.ports.submission_context import SubmissionContextRepository
 from agentmine.application.use_cases.context import (
     check_content,
     load,
@@ -19,6 +20,7 @@ from agentmine.application.use_cases.context import (
     require_state,
     save,
 )
+from agentmine.application.use_cases.submission_context import review_envelope
 from agentmine.domain.approval import (
     ApprovalAction,
     ApprovalDecision,
@@ -37,6 +39,9 @@ class PrepareOperatorReview:
     ledger: CostLedgerRepository
     approvals: ApprovalRepository
     clock: Clock
+    contexts: SubmissionContextRepository | None = None
+    operator: Reference | None = None
+    context_ledger: Reference | None = None
 
     def for_submission(
         self,
@@ -73,6 +78,7 @@ class PrepareOperatorReview:
                 or existing.ledger_reference != ledger_reference
             ):
                 raise PortError(PortErrorCode.CONFLICT, "review", "Review identity reused")
+            review_envelope(self.contexts, existing, self.operator, self.context_ledger)
             return existing
         previous = load(self.opportunities, opportunity_reference)
         opportunity = previous.value
@@ -149,6 +155,7 @@ class PrepareOperatorReview:
             content,
             tuple(risks),
         )
+        review_envelope(self.contexts, review, self.operator, self.context_ledger)
         self.approvals.save_review(review)
         return review
 
@@ -156,12 +163,19 @@ class PrepareOperatorReview:
 @dataclass(frozen=True, slots=True)
 class GetOperatorReview:
     approvals: ApprovalRepository
+    contexts: SubmissionContextRepository | None = None
+    operator: Reference | None = None
+    context_ledger: Reference | None = None
 
     def execute(self, reference: Reference) -> RecordedOperatorReview:
         review = self.approvals.get_review(reference)
         if review is None:
             raise PortError(PortErrorCode.UNAVAILABLE, "review", "Review missing")
-        return RecordedOperatorReview(review, self.approvals.get_decision(reference))
+        return RecordedOperatorReview(
+            review,
+            self.approvals.get_decision(reference),
+            review_envelope(self.contexts, review, self.operator, self.context_ledger),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,6 +187,8 @@ class DecideOperatorReview:
     source: OpportunitySource
     clock: Clock
     operator: Reference
+    contexts: SubmissionContextRepository | None = None
+    context_ledger: Reference | None = None
 
     def execute(
         self, reference: Reference, decision: OperatorDecision, reason: str | None = None
@@ -180,6 +196,7 @@ class DecideOperatorReview:
         review = self.approvals.get_review(reference)
         if review is None:
             raise PortError(PortErrorCode.UNAVAILABLE, "decide", "Review missing")
+        envelope = review_envelope(self.contexts, review, self.operator, self.context_ledger)
         recorded = self.approvals.get_decision(reference)
         candidate = ApprovalDecision(
             reference,
@@ -224,7 +241,10 @@ class DecideOperatorReview:
                     PortErrorCode.CONFLICT, "decide", "Budget/costs changed; prepare a new review"
                 )
         if decision == OperatorDecision.APPROVE and submission:
-            refresh(self.opportunities, self.source, self.clock, original.reference)
+            # B1 context consent is offline only. Fresh external checks belong to
+            # the later handoff, which is deliberately unavailable in this checkpoint.
+            if envelope is None:
+                refresh(self.opportunities, self.source, self.clock, original.reference)
             assert review.content is not None
             stored = self.executions.get_content(review.content.reference)
             if stored != review.content:

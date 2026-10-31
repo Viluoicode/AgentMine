@@ -27,6 +27,13 @@ from agentmine.application.use_cases.operator import (
     PrepareOperatorReview,
 )
 from agentmine.application.use_cases.planning import DiscoverOpportunities, NormalizeOpportunity
+from agentmine.application.use_cases.submission_context import (
+    GetSubmissionConsent,
+    GetSubmissionEnvelope,
+    GetSubmissionEvidence,
+    PrepareSubmissionEnvelope,
+    RecordSubmissionEvidence,
+)
 from agentmine.application.use_cases.workspace import (
     InitializeWorkspace,
     LoadWorkspaceOpportunities,
@@ -44,8 +51,11 @@ from agentmine.infrastructure.sqlite.database import SQLiteDatabase
 from agentmine.infrastructure.sqlite.eligibility_review import SQLiteEligibilityReviewRepository
 from agentmine.infrastructure.sqlite.executions import SQLiteExecutionRepository
 from agentmine.infrastructure.sqlite.ledger import SQLiteCostLedgerRepository
+from agentmine.infrastructure.sqlite.operational_qa import SQLiteOperationalQARepository
 from agentmine.infrastructure.sqlite.operator import SQLiteOperatorReadRepository
 from agentmine.infrastructure.sqlite.opportunities import SQLiteOpportunityRepository
+from agentmine.infrastructure.sqlite.qa import SQLiteQAJournal
+from agentmine.infrastructure.sqlite.submission_context import SQLiteSubmissionContextRepository
 from agentmine.presentation.budget_cli import BudgetServices
 from agentmine.presentation.operator_cli import (
     OperatorServices,
@@ -53,6 +63,7 @@ from agentmine.presentation.operator_cli import (
     run_command,
     workspace_policy,
 )
+from agentmine.presentation.submission_context_cli import SubmissionContextServices
 
 
 class UTCClock:
@@ -93,11 +104,35 @@ def compose_operator(
         workspace.read(
             ledger_reference
         )  # Fail on a missing/wrong/multiple ledger before runtime I/O.
+    runtime = compose_local_runtime(
+        database, ledger_reference, operator, clock, source, input_root, export_directory
+    )
+    contexts = SQLiteSubmissionContextRepository(database)
+    get_context = GetSubmissionEnvelope(contexts, operator, ledger_reference)
     return OperatorServices(
         GetOperatorDashboard(workspace, clock),
-        PrepareOperatorReview(opportunities, executions, ledger, approvals, clock),
-        DecideOperatorReview(opportunities, executions, ledger, approvals, source, clock, operator),
-        GetOperatorReview(approvals),
+        PrepareOperatorReview(
+            opportunities,
+            executions,
+            ledger,
+            approvals,
+            clock,
+            contexts,
+            operator,
+            ledger_reference,
+        ),
+        DecideOperatorReview(
+            opportunities,
+            executions,
+            ledger,
+            approvals,
+            source,
+            clock,
+            operator,
+            contexts,
+            ledger_reference,
+        ),
+        GetOperatorReview(approvals, contexts, operator, ledger_reference),
         ledger_reference,
         InitializeWorkspace(ledger),
         LoadWorkspaceOpportunities(
@@ -109,14 +144,28 @@ def compose_operator(
         PrepareEligibilityReview(opportunities, eligibility_reviews, source, clock),
         GetEligibilityReview(eligibility_reviews),
         ResolveEligibilityReview(opportunities, eligibility_reviews, source, clock, operator),
-        compose_local_runtime(
-            database, ledger_reference, operator, clock, source, input_root, export_directory
-        ),
+        runtime,
         BudgetServices(
             InspectBudgetRecovery(budget_control, ledger_reference, clock),
             PrepareBudgetPolicyChange(budget_control, ledger_reference, operator, clock),
             GetBudgetPolicyChange(budget_control, ledger_reference, clock),
             ApplyBudgetPolicyChange(budget_control, ledger_reference, operator, clock),
+        ),
+        SubmissionContextServices(
+            PrepareSubmissionEnvelope(
+                contexts,
+                runtime.status.runtime,
+                opportunities,
+                SQLiteOperationalQARepository(database),
+                SQLiteQAJournal(database),
+                clock,
+                operator,
+                ledger_reference,
+            ),
+            get_context,
+            RecordSubmissionEvidence(contexts, get_context, clock),
+            GetSubmissionEvidence(contexts, get_context),
+            GetSubmissionConsent(contexts, approvals, opportunities, operator, ledger_reference),
         ),
     )
 
@@ -146,8 +195,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             and args.budget_action == "policy"
             and args.policy_action in ("prepare", "apply")
         )
+        context_mutation = args.command == "submission" and args.submission_action in (
+            "prepare",
+            "evidence-record",
+        )
         if (
-            args.command == "decide" or eligibility_decision or runtime_mutation or budget_mutation
+            args.command == "decide"
+            or eligibility_decision
+            or runtime_mutation
+            or budget_mutation
+            or context_mutation
         ) and not actor.strip():
             raise ValueError("Operator identity required")
         clock = UTCClock()
@@ -200,7 +257,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             export_directory=Path(args.directory)
             if args.command == "work" and args.work_action == "export"
             else None,
-            validate_runtime_workspace=args.command in ("work", "opportunity", "budget"),
+            validate_runtime_workspace=args.command
+            in ("work", "opportunity", "budget", "submission"),
         )
         return run_command(args, services, sys.stdout)
     except PortError as error:

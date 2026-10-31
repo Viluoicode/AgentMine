@@ -6,6 +6,7 @@ from decimal import Decimal
 
 from agentmine.application.contracts.ai import ReferencedText
 from agentmine.application.contracts.records import Versioned
+from agentmine.application.contracts.submission_context import SubmissionEnvelope
 from agentmine.domain.approval import ApprovalDecision, ApprovalScope
 from agentmine.domain.budget import BudgetAuthorization
 from agentmine.domain.errors import DomainError, ErrorCode
@@ -21,6 +22,7 @@ from agentmine.domain.work import Deliverable, Eligibility, QAResult
 class RecordedOperatorReview:
     review: "OperatorReview"
     decision: ApprovalDecision | None
+    submission_envelope: SubmissionEnvelope | None = None
 
 
 @dataclass(frozen=True, slots=True)

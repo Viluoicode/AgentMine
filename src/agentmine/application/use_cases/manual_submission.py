@@ -41,6 +41,12 @@ class RecordManualSubmission:
             raise PortError(
                 PortErrorCode.CONFLICT, "manual_submission", "Retained manual intent required"
             )
+        if request.target.value.startswith("submission-context:"):
+            raise PortError(
+                PortErrorCode.UNSUPPORTED,
+                "manual_submission",
+                "Offline context has no manual handoff or submission authority",
+            )
         if (
             previous.value.deliverable != request.deliverable
             or previous.value.approval != request.approval
