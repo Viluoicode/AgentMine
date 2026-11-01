@@ -42,6 +42,7 @@ from agentmine.application.use_cases.workspace import (
 )
 from agentmine.bootstrap.local_runtime import compose_local_runtime
 from agentmine.bootstrap.manual_handoff import compose_manual_handoff
+from agentmine.bootstrap.outcome_evidence import compose_outcome_evidence
 from agentmine.domain.errors import DomainError
 from agentmine.domain.values import Reference
 from agentmine.infrastructure.marketplaces.disabled import DisabledOpportunitySource
@@ -135,6 +136,9 @@ def compose_operator(
             database, runtime, context_services, clock, manual_permission
         ),
     )
+    context_services = replace(
+        context_services, outcomes=compose_outcome_evidence(database, context_services, clock)
+    )
     return OperatorServices(
         GetOperatorDashboard(workspace, clock),
         PrepareOperatorReview(
@@ -214,6 +218,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.command == "submission"
             and args.submission_action == "handoff"
             and args.handoff_action in ("prepare", "confirm", "receipt-record")
+        )
+        context_mutation = context_mutation or (
+            args.command == "submission"
+            and args.submission_action == "outcome"
+            and args.outcome_action in ("record", "verify")
         )
         if (
             args.command == "decide"

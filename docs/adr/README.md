@@ -62,3 +62,5 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0029: Immutable submission context and exact-version review ownership](0029-immutable-submission-context-foundation.md)
 
 - [0030: Atomic offline manual handoff and provisional receipt](0030-atomic-manual-submission-handoff.md)
+
+- [0031: Independently authenticated outcome evidence](0031-authoritative-outcome-evidence.md)

@@ -25,6 +25,7 @@ from agentmine.application.contracts.submission_context import (
     digest,
 )
 from agentmine.application.use_cases.context import content_reference
+from agentmine.application.use_cases.outcome_evidence import OutcomeEvidenceWorkflow
 from agentmine.application.use_cases.submission_context import (
     GetSubmissionConsent,
     GetSubmissionEnvelope,
@@ -38,6 +39,7 @@ from agentmine.presentation.manual_handoff_cli import (
     add_handoff_parsers,
     run_handoff,
 )
+from agentmine.presentation.outcome_evidence_cli import add_outcome_parsers, run_outcome
 from agentmine.presentation.runtime_inputs import fields, items, read_json, text
 from agentmine.presentation.runtime_views import encode
 
@@ -50,6 +52,7 @@ class SubmissionContextServices:
     evidence: GetSubmissionEvidence
     consent: GetSubmissionConsent
     handoff: ManualHandoffServices | None = None
+    outcomes: OutcomeEvidenceWorkflow | None = None
 
 
 def add_submission_context_parsers(
@@ -58,6 +61,7 @@ def add_submission_context_parsers(
     command = commands.add_parser("submission", help="Offline context/evidence only; no send")
     actions = command.add_subparsers(dest="submission_action", required=True)
     add_handoff_parsers(actions)
+    add_outcome_parsers(actions)
     for name in ("prepare", "show", "evidence-record", "evidence-show", "consent"):
         action = actions.add_parser(name)
         if name in ("prepare", "show", "evidence-record"):
@@ -173,6 +177,10 @@ def run_submission_context(
 ) -> int:
     try:
         action = args.submission_action
+        if action == "outcome":
+            if services.outcomes is None:
+                raise ValueError("Outcome workflow unavailable")
+            return run_outcome(args, services.outcomes, output)
         if action == "handoff":
             from agentmine.application.errors import PortError, PortErrorCode
 
