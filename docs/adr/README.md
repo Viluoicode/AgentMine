@@ -60,3 +60,5 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0028: Immutable linear Data revision ownership and exact-version persistence](0028-versioned-data-rework-foundation.md)
 
 - [0029: Immutable submission context and exact-version review ownership](0029-immutable-submission-context-foundation.md)
+
+- [0030: Atomic offline manual handoff and provisional receipt](0030-atomic-manual-submission-handoff.md)
