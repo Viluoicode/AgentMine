@@ -33,6 +33,11 @@ from agentmine.application.use_cases.submission_context import (
     RecordSubmissionEvidence,
 )
 from agentmine.domain.values import Reference
+from agentmine.presentation.manual_handoff_cli import (
+    ManualHandoffServices,
+    add_handoff_parsers,
+    run_handoff,
+)
 from agentmine.presentation.runtime_inputs import fields, items, read_json, text
 from agentmine.presentation.runtime_views import encode
 
@@ -44,6 +49,7 @@ class SubmissionContextServices:
     record: RecordSubmissionEvidence
     evidence: GetSubmissionEvidence
     consent: GetSubmissionConsent
+    handoff: ManualHandoffServices | None = None
 
 
 def add_submission_context_parsers(
@@ -51,6 +57,7 @@ def add_submission_context_parsers(
 ) -> None:
     command = commands.add_parser("submission", help="Offline context/evidence only; no send")
     actions = command.add_subparsers(dest="submission_action", required=True)
+    add_handoff_parsers(actions)
     for name in ("prepare", "show", "evidence-record", "evidence-show", "consent"):
         action = actions.add_parser(name)
         if name in ("prepare", "show", "evidence-record"):
@@ -166,6 +173,14 @@ def run_submission_context(
 ) -> int:
     try:
         action = args.submission_action
+        if action == "handoff":
+            from agentmine.application.errors import PortError, PortErrorCode
+
+            if services.handoff is None:
+                raise PortError(
+                    PortErrorCode.UNSUPPORTED, "manual_handoff", "Offline handoff unavailable"
+                )
+            return run_handoff(args, services.handoff, output)
         if action in ("prepare", "show"):
             value = (
                 services.prepare.execute(

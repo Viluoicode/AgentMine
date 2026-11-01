@@ -4,10 +4,12 @@ import json
 import os
 import sys
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
 from agentmine.application.errors import PortError
+from agentmine.application.ports.manual_handoff import ManualChannelPermission
 from agentmine.application.ports.services import Clock, OpportunitySource
 from agentmine.application.use_cases.budget_control import (
     ApplyBudgetPolicyChange,
@@ -39,6 +41,7 @@ from agentmine.application.use_cases.workspace import (
     LoadWorkspaceOpportunities,
 )
 from agentmine.bootstrap.local_runtime import compose_local_runtime
+from agentmine.bootstrap.manual_handoff import compose_manual_handoff
 from agentmine.domain.errors import DomainError
 from agentmine.domain.values import Reference
 from agentmine.infrastructure.marketplaces.disabled import DisabledOpportunitySource
@@ -82,6 +85,7 @@ def compose_operator(
     input_root: Path | None = None,
     export_directory: Path | None = None,
     validate_runtime_workspace: bool = False,
+    manual_permission: ManualChannelPermission | None = None,
 ) -> OperatorServices:
     if not path.is_file():
         if not create_workspace:
@@ -109,6 +113,28 @@ def compose_operator(
     )
     contexts = SQLiteSubmissionContextRepository(database)
     get_context = GetSubmissionEnvelope(contexts, operator, ledger_reference)
+    context_services = SubmissionContextServices(
+        PrepareSubmissionEnvelope(
+            contexts,
+            runtime.status.runtime,
+            opportunities,
+            SQLiteOperationalQARepository(database),
+            SQLiteQAJournal(database),
+            clock,
+            operator,
+            ledger_reference,
+        ),
+        get_context,
+        RecordSubmissionEvidence(contexts, get_context, clock),
+        GetSubmissionEvidence(contexts, get_context),
+        GetSubmissionConsent(contexts, approvals, opportunities, operator, ledger_reference),
+    )
+    context_services = replace(
+        context_services,
+        handoff=compose_manual_handoff(
+            database, runtime, context_services, clock, manual_permission
+        ),
+    )
     return OperatorServices(
         GetOperatorDashboard(workspace, clock),
         PrepareOperatorReview(
@@ -151,22 +177,7 @@ def compose_operator(
             GetBudgetPolicyChange(budget_control, ledger_reference, clock),
             ApplyBudgetPolicyChange(budget_control, ledger_reference, operator, clock),
         ),
-        SubmissionContextServices(
-            PrepareSubmissionEnvelope(
-                contexts,
-                runtime.status.runtime,
-                opportunities,
-                SQLiteOperationalQARepository(database),
-                SQLiteQAJournal(database),
-                clock,
-                operator,
-                ledger_reference,
-            ),
-            get_context,
-            RecordSubmissionEvidence(contexts, get_context, clock),
-            GetSubmissionEvidence(contexts, get_context),
-            GetSubmissionConsent(contexts, approvals, opportunities, operator, ledger_reference),
-        ),
+        context_services,
     )
 
 
@@ -198,6 +209,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         context_mutation = args.command == "submission" and args.submission_action in (
             "prepare",
             "evidence-record",
+        )
+        context_mutation = context_mutation or (
+            args.command == "submission"
+            and args.submission_action == "handoff"
+            and args.handoff_action in ("prepare", "confirm", "receipt-record")
         )
         if (
             args.command == "decide"
