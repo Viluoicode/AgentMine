@@ -40,6 +40,11 @@ from agentmine.presentation.manual_handoff_cli import (
     run_handoff,
 )
 from agentmine.presentation.outcome_evidence_cli import add_outcome_parsers, run_outcome
+from agentmine.presentation.payment_evidence_cli import (
+    PaymentEvidenceServices,
+    add_payment_parsers,
+    run_payment,
+)
 from agentmine.presentation.runtime_inputs import fields, items, read_json, text
 from agentmine.presentation.runtime_views import encode
 
@@ -53,6 +58,7 @@ class SubmissionContextServices:
     consent: GetSubmissionConsent
     handoff: ManualHandoffServices | None = None
     outcomes: OutcomeEvidenceWorkflow | None = None
+    payments: PaymentEvidenceServices | None = None
 
 
 def add_submission_context_parsers(
@@ -62,6 +68,7 @@ def add_submission_context_parsers(
     actions = command.add_subparsers(dest="submission_action", required=True)
     add_handoff_parsers(actions)
     add_outcome_parsers(actions)
+    add_payment_parsers(actions)
     for name in ("prepare", "show", "evidence-record", "evidence-show", "consent"):
         action = actions.add_parser(name)
         if name in ("prepare", "show", "evidence-record"):
@@ -177,6 +184,10 @@ def run_submission_context(
 ) -> int:
     try:
         action = args.submission_action
+        if action == "payment":
+            if services.payments is None:
+                raise ValueError("Provisional payment reports unavailable")
+            return run_payment(args, services.payments, output)
         if action == "outcome":
             if services.outcomes is None:
                 raise ValueError("Outcome workflow unavailable")

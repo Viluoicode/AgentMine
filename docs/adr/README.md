@@ -64,3 +64,5 @@ Recorded: [ADR 0008: Marketplace contract validation](0008-marketplace-contract-
 - [0030: Atomic offline manual handoff and provisional receipt](0030-atomic-manual-submission-handoff.md)
 
 - [0031: Independently authenticated outcome evidence](0031-authoritative-outcome-evidence.md)
+
+- [0032: Provisional offline payment reports and immutable capture binding](0032-provisional-payment-evidence-foundation.md)
