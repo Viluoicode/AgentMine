@@ -127,3 +127,53 @@ compatibility. Zero normalized records may be legitimate quarantine. Exit 1 indi
 source/archive/normalization failure; exit 2 indicates invocation/configuration failure.
 The live probe has not been executed during Milestone 3C implementation. Production
 compatibility, complete pagination, token/prize valuation and submission remain unresolved.
+
+## Offline discovery diagnostics - Phase B.3
+
+Use an existing raw archive and exact capture references. This command does not
+read an API key, construct HTTP/LLM clients, initialize a workspace or ledger,
+ingest opportunities, or perform external actions. No live option exists.
+
+```powershell
+.\.venv\Scripts\python.exe -m agentmine.bootstrap.discovery_diagnostics --archive "C:\path\raw.sqlite3" --list-capture "raw:sha256:REPLACE_WITH_64_LOWERCASE_HEX"
+```
+
+Add `--detail-capture "raw:sha256:..."` for each explicitly selected detail
+(maximum 50 distinct references). The example reference must be replaced with an
+actual retained digest. The command never scans for the latest detail or joins
+captures by time. Selected list/detail ID, slug and routes must agree; distinct
+captures for one listing are a conflict, even if their bodies match.
+
+JSON distinguishes raw rows, unique listings, duplicate rows, normalization,
+quarantine and unresolved evidence. NORMALIZED means compatibility with the
+current normalizer, not that an Opportunity exists or eligibility was approved.
+Bounty and USDC restrictions are unchanged; quarantine issue codes remain visible.
+EMPTY_FEED describes only the exact retained list response. UNKNOWN_COVERAGE is
+always present: there is no independently proven complete traversal.
+
+PARTIAL_FAILURE concerns selected-evidence inspection, not an inferred historical
+API timeout. Missing details remain INCOMPLETE_EVIDENCE, not quarantine or a
+network failure. Invalid list evidence fails with unknown counts instead of an
+empty-feed result. Verified list metadata is retained on parse/identity errors.
+List and detail timestamps are separate; no same-run/freshness claim is made.
+Outputs are recomputed using the current normalizer and labeled
+`diagnostic_version=offline-discovery-v1`. This is not a historical run journal.
+
+Archive reads use one SQLite read transaction with `mode=ro` (not immutable mode).
+Missing files/schema are not initialized. The existing archive writer is unchanged.
+To avoid read-created sidecars, WAL and journal-sidecar archives fail closed with
+reconciliation required; the tool does not checkpoint, repair, copy or change them.
+Stop/resolve archive writer activity separately before inspection. Archives remain
+subject to trusted local filesystem/SQLite constraints; arbitrary concurrent file
+replacement or journal-mode switching is unsupported.
+
+Bounds: 50 selected details, 2,000,000 body bytes per capture, 8,000,000 aggregate
+selected body bytes, list take 1-50, identities at most 256 ASCII identifier
+characters. Only bounded identity metadata, capture references/timestamps, typed
+reasons and issue codes are rendered; raw title/description/body is not printed.
+No new dependency, schema, persistent diagnostic record or financial authority is
+introduced. The raw digest verifies retained content integrity, not authenticity.
+
+Exit 0: all selected evidence is resolved, including honest quarantine or empty
+feed. Exit 1: incomplete/conflicting/invalid/unavailable evidence. Exit 2: argparse
+usage error. Coverage alone does not cause failure. Keep the archive private.
