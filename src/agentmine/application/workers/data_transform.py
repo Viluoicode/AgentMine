@@ -18,8 +18,10 @@ from agentmine.application.contracts.data import (
     DataPlan,
     DataRecord,
     DataSource,
+    InputPresence,
     TextCase,
     ValueKind,
+    invalid,
 )
 
 
@@ -132,12 +134,24 @@ def transform(plan: DataPlan) -> tuple[tuple[DataRecord, ...], tuple[DataIssue, 
             issues.append(DataIssue(DataIssueCode.MALFORMED_SOURCE, source.reference))
             continue
         if len(rows) + len(records) > 1000:
+            # V2 must not return a seemingly empty assessment after dropping parsed rows.
+            if plan.output_policy is not None:
+                raise invalid("partition_record_limit")
             # No truncation presented as successful collection.
             return (), (DataIssue(DataIssueCode.RECORD_COUNT),)
         for position, row in enumerate(rows, start=1):
             cells: list[DataCell] = []
             for column in plan.columns:
                 found, raw = extract(row, column.path)
+                presence = None
+                if plan.output_policy is not None:
+                    presence = (
+                        InputPresence.MISSING
+                        if not found
+                        else InputPresence.NULL
+                        if raw is None
+                        else InputPresence.VALUE
+                    )
                 if not found and column.required:
                     issues.append(
                         DataIssue(
@@ -154,7 +168,15 @@ def transform(plan: DataPlan) -> tuple[tuple[DataRecord, ...], tuple[DataIssue, 
                             DataIssueCode.INVALID_VALUE, source.reference, position, column.name
                         )
                     )
-                cells.append(DataCell(column.name, value, column.path, column.lookup_evidence))
+                cells.append(
+                    DataCell(
+                        column.name,
+                        value,
+                        column.path,
+                        column.lookup_evidence,
+                        input_presence=presence,
+                    )
+                )
             records.append(
                 DataRecord(
                     f"row-{len(records) + 1}",
@@ -199,7 +221,7 @@ def validate(
                         code = DataIssueCode.INVALID_VALUE
             if code is not None:
                 issues.append(DataIssue(code, record.source, record.row, column.name))
-        if not before_ai or not semantic.intersection(unique):
+        if plan.output_policy is None and (not before_ai or not semantic.intersection(unique)):
             key = tuple(values[name] for name in unique)
             if key in seen:
                 issues.append(DataIssue(DataIssueCode.DUPLICATE, record.source, record.row))

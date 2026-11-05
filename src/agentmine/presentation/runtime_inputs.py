@@ -9,7 +9,10 @@ from agentmine.application.contracts.data import (
     Comparison,
     DataColumn,
     DataFormat,
+    DataPartitionPolicy,
+    DuplicatePolicy,
     LookupEntry,
+    PartitionAcceptance,
     RowConstraint,
     TextCase,
     ValueKind,
@@ -193,6 +196,7 @@ def read_prepare(
             "max_records",
             "constraints",
             "acceptance",
+            "output_policy",
         },
         {"sources", "columns"},
     )
@@ -232,11 +236,14 @@ def read_prepare(
         tuple(constraints),
         review,
         None if obj.get("acceptance") is None else acceptance(obj["acceptance"]),
+        None if obj.get("output_policy") is None else partition_policy(obj["output_policy"]),
     )
 
 
 def acceptance(value: object) -> DataAcceptanceCriteria:
-    obj = fields(value, {"formats", "requirements"}, {"formats", "requirements"})
+    obj = fields(
+        value, {"formats", "requirements", "partition_acceptance"}, {"formats", "requirements"}
+    )
     formats: list[RequiredArtifact] = []
     for item in items(obj["formats"], 20):
         entry = fields(item, {"name", "format"}, {"name", "format"})
@@ -254,4 +261,29 @@ def acceptance(value: object) -> DataAcceptanceCriteria:
                 text(entry["criterion"]),
             )
         )
-    return DataAcceptanceCriteria(tuple(formats), tuple(requirements))
+    thresholds = obj.get("partition_acceptance")
+    return DataAcceptanceCriteria(
+        tuple(formats),
+        tuple(requirements),
+        None if thresholds is None else partition_thresholds(thresholds),
+    )
+
+
+def partition_policy(value: object) -> DataPartitionPolicy:
+    names = {"contract_version", "id_column", "duplicate_policy"}
+    obj = fields(value, names, names)
+    return DataPartitionPolicy(
+        integer(obj["contract_version"]),
+        text(obj["id_column"]),
+        DuplicatePolicy(text(obj["duplicate_policy"])),
+    )
+
+
+def partition_thresholds(value: object) -> PartitionAcceptance:
+    names = {"contract_version", "min_clean_records", "max_rejected_records"}
+    obj = fields(value, names, names)
+    return PartitionAcceptance(
+        integer(obj["contract_version"]),
+        integer(obj["min_clean_records"]),
+        integer(obj["max_rejected_records"]),
+    )

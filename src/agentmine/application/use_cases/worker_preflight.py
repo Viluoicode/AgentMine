@@ -35,6 +35,19 @@ class WorkerPreflight:
     ) -> WorkerExecutionReason | None:
         # Revalidate even a misbehaving in-memory port's frozen input objects.
         spec = replace(specification)
+        # WorkSpecification validates explicit v2 policy, approved thresholds and
+        # deterministic-only schema before the same freshness/economic checks as v1.
+        return self._check_evidence(spec, opportunity)
+
+    def check_qa(
+        self, specification: WorkSpecification, opportunity: Opportunity
+    ) -> WorkerExecutionReason | None:
+        """Read-only evidence checks for retained QA; never authorizes worker dispatch."""
+        return self._check_evidence(replace(specification), opportunity)
+
+    def _check_evidence(
+        self, spec: WorkSpecification, opportunity: Opportunity
+    ) -> WorkerExecutionReason | None:
         evidence = spec.execution_evidence
         if spec.actor != self.operator or spec.approved_at > self.clock.now():
             return WorkerExecutionReason.APPROVAL_DENIED

@@ -1,0 +1,124 @@
+{
+  "contract_version": 2,
+  "counts": {
+    "clean": 0,
+    "duplicate_groups": 1,
+    "parsed": 4,
+    "rejected": 4
+  },
+  "duplicate_groups": [
+    {
+      "canonical_id": "A001",
+      "group_id": "sha256:61768428c8c0928bcad7a6bda258823731586ff6c8968636496afb9eb328f83d",
+      "members": [
+        {
+          "row_id": "row-1",
+          "sha256": "90fa8c1cdb65eea6ddd86ccd50b2c3e68e03a6650a389e8d764aab9126624281",
+          "source": "local-input",
+          "source_row": 1
+        },
+        {
+          "row_id": "row-3",
+          "sha256": "90fa8c1cdb65eea6ddd86ccd50b2c3e68e03a6650a389e8d764aab9126624281",
+          "source": "local-input",
+          "source_row": 3
+        }
+      ]
+    }
+  ],
+  "evidence_complete": true,
+  "input_valid": false,
+  "issues": [
+    {
+      "code": "duplicate",
+      "column": "id",
+      "group_id": "sha256:61768428c8c0928bcad7a6bda258823731586ff6c8968636496afb9eb328f83d",
+      "row": 1,
+      "source": "local-input"
+    },
+    {
+      "code": "missing_value",
+      "column": "name",
+      "row": 2,
+      "source": "local-input"
+    },
+    {
+      "code": "invalid_value",
+      "column": "category",
+      "row": 2,
+      "source": "local-input"
+    },
+    {
+      "code": "missing_value",
+      "column": "category",
+      "row": 2,
+      "source": "local-input"
+    },
+    {
+      "code": "invalid_value",
+      "column": "price",
+      "row": 2,
+      "source": "local-input"
+    },
+    {
+      "code": "missing_value",
+      "column": "price",
+      "row": 2,
+      "source": "local-input"
+    },
+    {
+      "code": "invalid_value",
+      "column": "stock",
+      "row": 2,
+      "source": "local-input"
+    },
+    {
+      "code": "duplicate",
+      "column": "id",
+      "group_id": "sha256:61768428c8c0928bcad7a6bda258823731586ff6c8968636496afb9eb328f83d",
+      "row": 3,
+      "source": "local-input"
+    },
+    {
+      "code": "missing_column",
+      "column": "id",
+      "row": 4,
+      "source": "local-input"
+    },
+    {
+      "code": "missing_value",
+      "column": "id",
+      "row": 4,
+      "source": "local-input"
+    },
+    {
+      "code": "missing_column",
+      "column": "stock",
+      "row": 4,
+      "source": "local-input"
+    },
+    {
+      "code": "missing_value",
+      "column": "stock",
+      "row": 4,
+      "source": "local-input"
+    }
+  ],
+  "policy": {
+    "contract_version": 2,
+    "duplicate_policy": "REJECT_ALL",
+    "id_column": "id"
+  },
+  "sources": [
+    {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "locator": "operator:approved-data",
+      "parsed_count": 4,
+      "sha256": "90fa8c1cdb65eea6ddd86ccd50b2c3e68e03a6650a389e8d764aab9126624281",
+      "source": "local-input",
+      "status": "PARSED"
+    }
+  ],
+  "total_input_records": 4,
+  "unresolved": []
+}

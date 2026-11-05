@@ -1,0 +1,104 @@
+{
+  "contract_version": 2,
+  "counts": {
+    "clean": 0,
+    "duplicate_groups": 2,
+    "parsed": 4,
+    "rejected": 4
+  },
+  "duplicate_groups": [
+    {
+      "canonical_id": "B2",
+      "group_id": "sha256:c312c17de56f481e8f8a304772030dc39b07bcdd27d9089e7246006ccb890eef",
+      "members": [
+        {
+          "row_id": "row-1",
+          "sha256": "cd88af7db87e7415a56ba35e95874dd27bdfd889648b8d81da0f7753d6a9d065",
+          "source": "z",
+          "source_row": 1
+        },
+        {
+          "row_id": "row-4",
+          "sha256": "5f158e89a0c11728347fd6fdbbb59bc018ac61041105dca7b523bc2fe72574a6",
+          "source": "a",
+          "source_row": 2
+        }
+      ]
+    },
+    {
+      "canonical_id": "A1",
+      "group_id": "sha256:48a0c0d6bb271ca7caa8447fa094f49054d1165830f7a2871a4b0df601b519ae",
+      "members": [
+        {
+          "row_id": "row-2",
+          "sha256": "cd88af7db87e7415a56ba35e95874dd27bdfd889648b8d81da0f7753d6a9d065",
+          "source": "z",
+          "source_row": 2
+        },
+        {
+          "row_id": "row-3",
+          "sha256": "5f158e89a0c11728347fd6fdbbb59bc018ac61041105dca7b523bc2fe72574a6",
+          "source": "a",
+          "source_row": 1
+        }
+      ]
+    }
+  ],
+  "evidence_complete": true,
+  "input_valid": false,
+  "issues": [
+    {
+      "code": "duplicate",
+      "column": "id",
+      "group_id": "sha256:c312c17de56f481e8f8a304772030dc39b07bcdd27d9089e7246006ccb890eef",
+      "row": 1,
+      "source": "z"
+    },
+    {
+      "code": "duplicate",
+      "column": "id",
+      "group_id": "sha256:48a0c0d6bb271ca7caa8447fa094f49054d1165830f7a2871a4b0df601b519ae",
+      "row": 2,
+      "source": "z"
+    },
+    {
+      "code": "duplicate",
+      "column": "id",
+      "group_id": "sha256:48a0c0d6bb271ca7caa8447fa094f49054d1165830f7a2871a4b0df601b519ae",
+      "row": 1,
+      "source": "a"
+    },
+    {
+      "code": "duplicate",
+      "column": "id",
+      "group_id": "sha256:c312c17de56f481e8f8a304772030dc39b07bcdd27d9089e7246006ccb890eef",
+      "row": 2,
+      "source": "a"
+    }
+  ],
+  "policy": {
+    "contract_version": 2,
+    "duplicate_policy": "REJECT_ALL",
+    "id_column": "id"
+  },
+  "sources": [
+    {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "locator": "fixture:z",
+      "parsed_count": 2,
+      "sha256": "cd88af7db87e7415a56ba35e95874dd27bdfd889648b8d81da0f7753d6a9d065",
+      "source": "z",
+      "status": "PARSED"
+    },
+    {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "locator": "fixture:a",
+      "parsed_count": 2,
+      "sha256": "5f158e89a0c11728347fd6fdbbb59bc018ac61041105dca7b523bc2fe72574a6",
+      "source": "a",
+      "status": "PARSED"
+    }
+  ],
+  "total_input_records": 4,
+  "unresolved": []
+}

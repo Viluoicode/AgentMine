@@ -1,0 +1,64 @@
+{
+  "contract_version": 2,
+  "counts": {
+    "clean": 1,
+    "duplicate_groups": 1,
+    "parsed": 3,
+    "rejected": 2
+  },
+  "duplicate_groups": [
+    {
+      "canonical_id": "A1",
+      "group_id": "sha256:b38f10624b37589e4abe2208685bb58fc2b897b3daca247f7e6d90528a616fc2",
+      "members": [
+        {
+          "row_id": "row-1",
+          "sha256": "140f6b01e3a21ffde56772e7fdd1ead956566ec834034a3d7328f77ecdfada2e",
+          "source": "s1",
+          "source_row": 1
+        },
+        {
+          "row_id": "row-2",
+          "sha256": "140f6b01e3a21ffde56772e7fdd1ead956566ec834034a3d7328f77ecdfada2e",
+          "source": "s1",
+          "source_row": 2
+        }
+      ]
+    }
+  ],
+  "evidence_complete": true,
+  "input_valid": false,
+  "issues": [
+    {
+      "code": "duplicate",
+      "column": "id",
+      "group_id": "sha256:b38f10624b37589e4abe2208685bb58fc2b897b3daca247f7e6d90528a616fc2",
+      "row": 1,
+      "source": "s1"
+    },
+    {
+      "code": "duplicate",
+      "column": "id",
+      "group_id": "sha256:b38f10624b37589e4abe2208685bb58fc2b897b3daca247f7e6d90528a616fc2",
+      "row": 2,
+      "source": "s1"
+    }
+  ],
+  "policy": {
+    "contract_version": 2,
+    "duplicate_policy": "REJECT_ALL",
+    "id_column": "id"
+  },
+  "sources": [
+    {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "locator": "fixture:s1",
+      "parsed_count": 3,
+      "sha256": "140f6b01e3a21ffde56772e7fdd1ead956566ec834034a3d7328f77ecdfada2e",
+      "source": "s1",
+      "status": "PARSED"
+    }
+  ],
+  "total_input_records": 3,
+  "unresolved": []
+}

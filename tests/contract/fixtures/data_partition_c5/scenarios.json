@@ -1,0 +1,130 @@
+[
+  {
+    "name": "all-valid",
+    "kind": "c3",
+    "case": "all_valid",
+    "minimum": 1,
+    "maximum": 2,
+    "outcome": "PASS"
+  },
+  {
+    "name": "mixed-approved",
+    "kind": "c3",
+    "case": "mixed",
+    "minimum": 1,
+    "maximum": 2,
+    "outcome": "PASS"
+  },
+  {
+    "name": "mixed-denied",
+    "kind": "c3",
+    "case": "mixed",
+    "minimum": 1,
+    "maximum": 0,
+    "outcome": "NEEDS_REVISION"
+  },
+  {
+    "name": "duplicates",
+    "kind": "c3",
+    "case": "two_duplicates",
+    "minimum": 1,
+    "maximum": 2,
+    "outcome": "PASS"
+  },
+  {
+    "name": "cross-source",
+    "kind": "c3",
+    "case": "cross_source",
+    "minimum": 1,
+    "maximum": 2,
+    "outcome": "PASS"
+  },
+  {
+    "name": "zero-clean",
+    "kind": "c3",
+    "case": "three_duplicates",
+    "minimum": 1,
+    "maximum": 3,
+    "outcome": "NEEDS_REVISION"
+  },
+  {
+    "name": "all-rejected",
+    "kind": "c3",
+    "case": "all_invalid",
+    "minimum": 1,
+    "maximum": 2,
+    "outcome": "NEEDS_REVISION"
+  },
+  {
+    "name": "optional-presence",
+    "kind": "c3",
+    "case": "optional_null_and_blank",
+    "minimum": 1,
+    "maximum": 2,
+    "outcome": "PASS"
+  },
+  {
+    "name": "incomplete",
+    "kind": "c3",
+    "case": "partial_malformed",
+    "minimum": 1,
+    "maximum": 2,
+    "outcome": "NEEDS_REVISION"
+  },
+  {
+    "name": "batch-count",
+    "kind": "c3",
+    "case": "batch_count",
+    "minimum": 1,
+    "maximum": 2,
+    "outcome": "NEEDS_REVISION"
+  },
+  {
+    "name": "empty",
+    "kind": "c3",
+    "case": "empty",
+    "minimum": 1,
+    "maximum": 2,
+    "outcome": "NEEDS_REVISION"
+  },
+  {
+    "name": "b41-dirty",
+    "kind": "catalog",
+    "case": "dirty",
+    "minimum": 1,
+    "maximum": 4,
+    "outcome": "NEEDS_REVISION"
+  },
+  {
+    "name": "b41-null",
+    "kind": "catalog",
+    "case": "control",
+    "minimum": 1,
+    "maximum": 4,
+    "outcome": "PASS"
+  },
+  {
+    "name": "b41-null-column",
+    "kind": "catalog",
+    "case": "control",
+    "minimum": 1,
+    "maximum": 4,
+    "outcome": "NEEDS_REVISION"
+  },
+  {
+    "name": "b41-complete",
+    "kind": "catalog",
+    "case": "complete",
+    "minimum": 1,
+    "maximum": 4,
+    "outcome": "PASS"
+  },
+  {
+    "name": "b41-malformed",
+    "kind": "catalog",
+    "case": "malformed",
+    "minimum": 1,
+    "maximum": 4,
+    "outcome": "NEEDS_REVISION"
+  }
+]

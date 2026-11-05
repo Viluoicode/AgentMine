@@ -1,0 +1,68 @@
+[
+  {
+    "_provenance": {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "fields": {
+        "id": {
+          "input_presence": "VALUE",
+          "lookup_evidence": null,
+          "path": [
+            "id"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        },
+        "price": {
+          "input_presence": "MISSING",
+          "lookup_evidence": null,
+          "path": [
+            "price"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        },
+        "qty": {
+          "input_presence": "MISSING",
+          "lookup_evidence": null,
+          "path": [
+            "qty"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        },
+        "title": {
+          "input_presence": "VALUE",
+          "lookup_evidence": null,
+          "path": [
+            "title"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        }
+      },
+      "locator": "fixture:s1",
+      "row_id": "row-1",
+      "sha256": "d727cccb0983e1b6a999e071a19c3b15f951c58ee121ed77152c81cf4ddc9b24",
+      "source": "s1",
+      "source_row": 1,
+      "source_verification": "caller_supplied_unverified"
+    },
+    "reasons": [
+      {
+        "code": "missing_column",
+        "column": "qty"
+      },
+      {
+        "code": "missing_value",
+        "column": "qty"
+      }
+    ],
+    "row_id": "row-1",
+    "values": {
+      "id": "A1",
+      "price": null,
+      "qty": null,
+      "title": "name"
+    }
+  }
+]

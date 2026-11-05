@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "value": {
+    "type": "agentmine.application.contracts.data.DataCell",
+    "fields": {
+      "name": "brand",
+      "value": null,
+      "source_path": {
+        "tuple": [
+          "brand"
+        ]
+      },
+      "lookup_evidence": null,
+      "semantic_evidence": null
+    }
+  }
+}

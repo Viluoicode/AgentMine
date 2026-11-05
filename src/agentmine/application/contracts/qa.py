@@ -7,6 +7,7 @@ from hashlib import sha256
 
 from agentmine.application.contracts.ai import QARequest, ReferencedText
 from agentmine.application.contracts.data import DataPlan, DataResult
+from agentmine.application.contracts.data import PartitionAcceptance as PartitionAcceptance
 from agentmine.application.contracts.research import ResearchResult, TaskPlan
 from agentmine.domain.budget import BudgetAuthorization
 from agentmine.domain.errors import DomainError, ErrorCode
@@ -23,6 +24,7 @@ class ArtifactFormat(StrEnum):
 
 class CoverageKind(StrEnum):
     COLUMN = "column"
+    FIELD_PRESENT = "field_present"
     SECTION = "section"
     LITERAL = "literal"
     SEMANTIC = "semantic"
@@ -64,6 +66,7 @@ class DataAcceptanceCriteria:
 
     formats: tuple[RequiredArtifact, ...]
     requirements: tuple[QARequirement, ...]
+    partition_acceptance: PartitionAcceptance | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -71,7 +74,12 @@ class DataAcceptanceCriteria:
             or not 1 <= len(self.formats) <= 20
             or any(
                 not isinstance(item, RequiredArtifact)
-                or item.name not in ("data.csv", "data.json", "validation.json")
+                or item.name
+                not in (
+                    ("data.csv", "data.json", "validation.json")
+                    if self.partition_acceptance is None
+                    else ("clean.csv", "clean.json", "rejected.json", "validation.json")
+                )
                 or item.format not in (ArtifactFormat.CSV, ArtifactFormat.JSON)
                 for item in self.formats
             )
@@ -86,6 +94,30 @@ class DataAcceptanceCriteria:
                 "acceptance_criteria",
                 "Explicit typed Data acceptance criteria required",
             )
+
+        if self.partition_acceptance is None:
+            if any(item.kind == CoverageKind.FIELD_PRESENT for item in self.requirements):
+                raise DomainError(
+                    ErrorCode.INVALID_VALUE, "acceptance", "FIELD_PRESENT requires v2"
+                )
+        else:
+            if not isinstance(self.partition_acceptance, PartitionAcceptance):
+                raise DomainError(
+                    ErrorCode.INVALID_VALUE, "acceptance", "Typed v2 acceptance required"
+                )
+            self.partition_acceptance.__post_init__()
+            expected = {
+                "clean.csv": ArtifactFormat.CSV,
+                "clean.json": ArtifactFormat.JSON,
+                "rejected.json": ArtifactFormat.JSON,
+                "validation.json": ArtifactFormat.JSON,
+            }
+            if {item.name: item.format for item in self.formats} != expected or any(
+                item.artifact not in expected for item in self.requirements
+            ):
+                raise DomainError(
+                    ErrorCode.INVALID_VALUE, "acceptance", "Exact v2 artifact contract required"
+                )
 
 
 def lifecycle_qa_result(report: QAReport) -> QAResult | None:
@@ -140,6 +172,7 @@ class QAInspection:
     requirements: tuple[QARequirement, ...]
     min_verified_sources: int = 1
     ai_authorization: BudgetAuthorization | None = None
+    partition_acceptance: PartitionAcceptance | None = None
 
     def __post_init__(self) -> None:
         require_reference(self.reference, "qa_inspection")
@@ -179,6 +212,32 @@ class QAInspection:
             raise DomainError(
                 ErrorCode.INVALID_VALUE, "source_limit", "Bounded source count required"
             )
+        if isinstance(self.plan, DataPlan) and isinstance(self.result, DataResult):
+            if self.partition_acceptance != self.plan.partition_acceptance:
+                raise DomainError(
+                    ErrorCode.EVIDENCE_MISMATCH, "qa_partition", "Frozen thresholds mismatch"
+                )
+            if self.plan.output_policy is not None:
+                if (
+                    self.result.partition is None
+                    or self.result.partition.policy != self.plan.output_policy
+                ):
+                    raise DomainError(
+                        ErrorCode.EVIDENCE_MISMATCH,
+                        "qa_partition",
+                        "Retained v2 assessment required",
+                    )
+                DataAcceptanceCriteria(self.formats, self.requirements, self.partition_acceptance)
+            elif self.result.partition is not None or any(
+                item.kind == CoverageKind.FIELD_PRESENT for item in self.requirements
+            ):
+                raise DomainError(
+                    ErrorCode.INVALID_VALUE, "qa_partition", "Legacy inspection cannot enable v2"
+                )
+        elif self.partition_acceptance is not None or any(
+            item.kind == CoverageKind.FIELD_PRESENT for item in self.requirements
+        ):
+            raise DomainError(ErrorCode.INVALID_VALUE, "qa_partition", "Data-only contract")
         if self.ai_authorization is not None:
             QARequest(
                 self.plan.execution,

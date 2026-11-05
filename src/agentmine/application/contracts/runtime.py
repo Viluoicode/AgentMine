@@ -9,12 +9,14 @@ from agentmine.application.contracts.data import (
     DataArtifact,
     DataColumn,
     DataIssue,
+    DataPartitionPolicy,
     DataPlan,
     DataRecord,
     DataResult,
     DataSource,
     RowConstraint,
     ValueKind,
+    validate_partition_binding,
 )
 from agentmine.application.contracts.execution_evidence import DataExecutionEvidence
 from agentmine.application.contracts.opportunities import OpportunityStatus
@@ -73,6 +75,7 @@ class WorkSpecification:
     constraints: tuple[RowConstraint, ...] = ()
     execution_evidence: DataExecutionEvidence | None = None
     acceptance: DataAcceptanceCriteria | None = None
+    output_policy: DataPartitionPolicy | None = None
 
     def __post_init__(self) -> None:
         for name, value in (
@@ -156,6 +159,14 @@ class WorkSpecification:
         ):
             raise invalid("constraint_types")
 
+        validate_partition_binding(
+            self.output_policy,
+            None if self.acceptance is None else self.acceptance.partition_acceptance,
+            self.columns,
+            self.unique_by,
+            self.max_records,
+        )
+
     def plan(self, execution: Execution) -> DataPlan:
         if execution.task != self.task:
             raise invalid("task")
@@ -167,6 +178,8 @@ class WorkSpecification:
             self.min_records,
             self.max_records,
             self.constraints,
+            self.output_policy,
+            None if self.acceptance is None else self.acceptance.partition_acceptance,
         )
 
 
@@ -327,6 +340,29 @@ class WorkerResult:
             "data.json": "application/json",
             "validation.json": "application/json",
         }
+        if self.run.plan.output_policy is not None:
+            assessment = result.partition
+            if (
+                assessment is None
+                or assessment.policy != self.run.plan.output_policy
+                or result.cost is None
+            ):
+                raise invalid("partition_result")
+            allowed = {
+                "clean.csv": "text/csv",
+                "clean.json": "application/json",
+                "rejected.json": "application/json",
+                "validation.json": "application/json",
+            }
+            expected = (
+                tuple(allowed.items())
+                if assessment.evidence_complete
+                else (("validation.json", "application/json"),)
+            )
+            if tuple((item.name, item.media_type) for item in result.artifacts) != expected:
+                raise invalid("partition_artifacts")
+        elif result.partition is not None:
+            raise invalid("legacy_partition")
         if any(
             not isinstance(item.content, str) or allowed.get(item.name) != item.media_type
             for item in result.artifacts

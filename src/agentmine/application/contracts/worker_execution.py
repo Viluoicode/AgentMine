@@ -52,6 +52,7 @@ class WorkerExecutionReason(StrEnum):
     EXTERNAL_OUTCOME_UNKNOWN = "external_outcome_unknown"
     WORKER_FAILED = "worker_failed"
     REWORK_REQUIRED = "rework_required"
+    CAPABILITY_UNAVAILABLE = "capability_unavailable"
 
 
 @dataclass(frozen=True, slots=True)

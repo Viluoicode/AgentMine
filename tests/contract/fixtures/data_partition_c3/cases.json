@@ -1,0 +1,1841 @@
+[
+  {
+    "name": "all_valid",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "[{\"id\":\" a1 \",\"title\":\" Cable \",\"qty\":\"002\",\"price\":\"1.500\"},{\"id\":\"b2\",\"title\":null,\"qty\":\"0\"}]",
+        "format": "json",
+        "sha256": "8b8efe16c88329d57267789258530135f685a96ac2865a16733270b58fa9d0b0"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "A1",
+            "cable",
+            "2",
+            "1.5"
+          ],
+          [
+            "VALUE",
+            "VALUE",
+            "VALUE",
+            "VALUE"
+          ]
+        ],
+        [
+          "s1",
+          2,
+          [
+            "B2",
+            null,
+            "0",
+            null
+          ],
+          [
+            "VALUE",
+            "NULL",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [],
+      "clean": [
+        1,
+        2
+      ],
+      "rejected": [],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "mixed",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "[{\"id\":\"a1\",\"qty\":\"-1\"},{\"id\":\"b2\",\"qty\":\"2\"}]",
+        "format": "json",
+        "sha256": "9cfa5b7002f3fd844f27bc91ef2eafc43000223cdbe7b9d475aebc14a058a6a9"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "A1",
+            null,
+            "-1",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "s1",
+          2,
+          [
+            "B2",
+            null,
+            "2",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "invalid_value",
+          "s1",
+          1,
+          "qty"
+        ]
+      ],
+      "clean": [
+        2
+      ],
+      "rejected": [
+        1
+      ],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "all_invalid",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "[{\"id\":\"a1\",\"qty\":\"bad\"},{\"id\":\"b2\",\"qty\":null}]",
+        "format": "json",
+        "sha256": "7eb4d5ebad7bae02baed4087e60a8aa75c711f68c621a7023661ab449b79caf6"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "A1",
+            null,
+            null,
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "s1",
+          2,
+          [
+            "B2",
+            null,
+            null,
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "NULL",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "invalid_value",
+          "s1",
+          1,
+          "qty"
+        ],
+        [
+          "missing_value",
+          "s1",
+          1,
+          "qty"
+        ],
+        [
+          "missing_value",
+          "s1",
+          2,
+          "qty"
+        ]
+      ],
+      "clean": [],
+      "rejected": [
+        1,
+        2
+      ],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "two_duplicates",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "[{\"id\":\" a1 \",\"qty\":\"1\"},{\"id\":\"A1\",\"qty\":\"2\"},{\"id\":\"b2\",\"qty\":\"3\"}]",
+        "format": "json",
+        "sha256": "140f6b01e3a21ffde56772e7fdd1ead956566ec834034a3d7328f77ecdfada2e"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "A1",
+            null,
+            "1",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "s1",
+          2,
+          [
+            "A1",
+            null,
+            "2",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "s1",
+          3,
+          [
+            "B2",
+            null,
+            "3",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "duplicate",
+          "s1",
+          1,
+          "id"
+        ],
+        [
+          "duplicate",
+          "s1",
+          2,
+          "id"
+        ]
+      ],
+      "clean": [
+        3
+      ],
+      "rejected": [
+        1,
+        2
+      ],
+      "groups": [
+        {
+          "canonical_id": "A1",
+          "members": [
+            1,
+            2
+          ],
+          "canonical_json": "[\"agentmine-data-duplicate-v2\",{\"contract_version\":2,\"duplicate_policy\":\"REJECT_ALL\",\"id_column\":\"id\"},\"A1\",[{\"reference\":\"s1\",\"sha256\":\"140f6b01e3a21ffde56772e7fdd1ead956566ec834034a3d7328f77ecdfada2e\"}]]",
+          "group_id": "sha256:b38f10624b37589e4abe2208685bb58fc2b897b3daca247f7e6d90528a616fc2"
+        }
+      ],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "three_duplicates",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "[{\"id\":\"a1\",\"qty\":\"1\"},{\"id\":\" A1 \",\"qty\":\"2\"},{\"id\":\"a1 \",\"qty\":\"3\"}]",
+        "format": "json",
+        "sha256": "05ccb1522ea280e94df96d2f799d329ae3c5ae88b2b470de5a209bc5c19759c9"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "A1",
+            null,
+            "1",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "s1",
+          2,
+          [
+            "A1",
+            null,
+            "2",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "s1",
+          3,
+          [
+            "A1",
+            null,
+            "3",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "duplicate",
+          "s1",
+          1,
+          "id"
+        ],
+        [
+          "duplicate",
+          "s1",
+          2,
+          "id"
+        ],
+        [
+          "duplicate",
+          "s1",
+          3,
+          "id"
+        ]
+      ],
+      "clean": [],
+      "rejected": [
+        1,
+        2,
+        3
+      ],
+      "groups": [
+        {
+          "canonical_id": "A1",
+          "members": [
+            1,
+            2,
+            3
+          ],
+          "canonical_json": "[\"agentmine-data-duplicate-v2\",{\"contract_version\":2,\"duplicate_policy\":\"REJECT_ALL\",\"id_column\":\"id\"},\"A1\",[{\"reference\":\"s1\",\"sha256\":\"05ccb1522ea280e94df96d2f799d329ae3c5ae88b2b470de5a209bc5c19759c9\"}]]",
+          "group_id": "sha256:d9b86b94b341854112b269cd717deea867db28d7db1d081e7e9fa1b8eb68d847"
+        }
+      ],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "cross_source",
+    "sources": [
+      {
+        "reference": "z-source",
+        "content": "[{\"id\":\"a1\",\"qty\":\"1\"}]",
+        "format": "json",
+        "sha256": "d4898500886b4f60480307ca5763883e5f18c171fe5e46d75ed22977b9f406be"
+      },
+      {
+        "reference": "a-source",
+        "content": "[{\"id\":\"A1\",\"qty\":\"2\"},{\"id\":\"b2\",\"qty\":\"3\"}]",
+        "format": "json",
+        "sha256": "c8746f1d17d2d47e01bd8a848bb3ac58d9f535f9971ef7ad92a38cb3942aae1e"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "z-source",
+          1,
+          [
+            "A1",
+            null,
+            "1",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "a-source",
+          1,
+          [
+            "A1",
+            null,
+            "2",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "a-source",
+          2,
+          [
+            "B2",
+            null,
+            "3",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "duplicate",
+          "z-source",
+          1,
+          "id"
+        ],
+        [
+          "duplicate",
+          "a-source",
+          1,
+          "id"
+        ]
+      ],
+      "clean": [
+        3
+      ],
+      "rejected": [
+        1,
+        2
+      ],
+      "groups": [
+        {
+          "canonical_id": "A1",
+          "members": [
+            1,
+            2
+          ],
+          "canonical_json": "[\"agentmine-data-duplicate-v2\",{\"contract_version\":2,\"duplicate_policy\":\"REJECT_ALL\",\"id_column\":\"id\"},\"A1\",[{\"reference\":\"z-source\",\"sha256\":\"d4898500886b4f60480307ca5763883e5f18c171fe5e46d75ed22977b9f406be\"},{\"reference\":\"a-source\",\"sha256\":\"c8746f1d17d2d47e01bd8a848bb3ac58d9f535f9971ef7ad92a38cb3942aae1e\"}]]",
+          "group_id": "sha256:43bdfa56d8be021bd82524d0af0b1f1968f025222937b8fa30c1a308c9773dca"
+        }
+      ],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "duplicate_and_error",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "[{\"id\":\"a1\",\"qty\":\"-1\"},{\"id\":\"A1\",\"qty\":\"2\"}]",
+        "format": "json",
+        "sha256": "7b1fbdb8857944f6863fdaa2f38db2fe166aae5cef2053854dfa51f678ffa7ff"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "A1",
+            null,
+            "-1",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "s1",
+          2,
+          [
+            "A1",
+            null,
+            "2",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "duplicate",
+          "s1",
+          1,
+          "id"
+        ],
+        [
+          "invalid_value",
+          "s1",
+          1,
+          "qty"
+        ],
+        [
+          "duplicate",
+          "s1",
+          2,
+          "id"
+        ]
+      ],
+      "clean": [],
+      "rejected": [
+        1,
+        2
+      ],
+      "groups": [
+        {
+          "canonical_id": "A1",
+          "members": [
+            1,
+            2
+          ],
+          "canonical_json": "[\"agentmine-data-duplicate-v2\",{\"contract_version\":2,\"duplicate_policy\":\"REJECT_ALL\",\"id_column\":\"id\"},\"A1\",[{\"reference\":\"s1\",\"sha256\":\"7b1fbdb8857944f6863fdaa2f38db2fe166aae5cef2053854dfa51f678ffa7ff\"}]]",
+          "group_id": "sha256:1df7b916929ca386b3d4a2c0e6171a4667f902492373b7c57a4c9565de2b431a"
+        }
+      ],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "missing_null_blank_ids",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "[{\"qty\":\"1\"},{\"id\":null,\"qty\":\"2\"},{\"id\":\"  \",\"qty\":\"3\"}]",
+        "format": "json",
+        "sha256": "1ec616bc97cff32062afb75766dc8d86abd189d06795f4bbc6f499a14cb83eed"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            null,
+            null,
+            "1",
+            null
+          ],
+          [
+            "MISSING",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "s1",
+          2,
+          [
+            null,
+            null,
+            "2",
+            null
+          ],
+          [
+            "NULL",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "s1",
+          3,
+          [
+            null,
+            null,
+            "3",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "missing_column",
+          "s1",
+          1,
+          "id"
+        ],
+        [
+          "missing_value",
+          "s1",
+          1,
+          "id"
+        ],
+        [
+          "missing_value",
+          "s1",
+          2,
+          "id"
+        ],
+        [
+          "missing_value",
+          "s1",
+          3,
+          "id"
+        ]
+      ],
+      "clean": [],
+      "rejected": [
+        1,
+        2,
+        3
+      ],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "invalid_ids_not_grouped",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "[{\"id\":\"TOOLONG\",\"qty\":\"1\"},{\"id\":\"TOOLONG\",\"qty\":\"2\"},{\"id\":[],\"qty\":\"3\"}]",
+        "format": "json",
+        "sha256": "dba07064d1c6bf4b655d16162ef3048ac7ec9de547d73170735b662e0cf0868b"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "TOOLONG",
+            null,
+            "1",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "s1",
+          2,
+          [
+            "TOOLONG",
+            null,
+            "2",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "s1",
+          3,
+          [
+            null,
+            null,
+            "3",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "invalid_value",
+          "s1",
+          1,
+          "id"
+        ],
+        [
+          "invalid_value",
+          "s1",
+          2,
+          "id"
+        ],
+        [
+          "invalid_value",
+          "s1",
+          3,
+          "id"
+        ],
+        [
+          "missing_value",
+          "s1",
+          3,
+          "id"
+        ]
+      ],
+      "clean": [],
+      "rejected": [
+        1,
+        2,
+        3
+      ],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "optional_null_and_blank",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "[{\"id\":\"a1\",\"title\":null,\"qty\":\"1\",\"price\":null},{\"id\":\"b2\",\"title\":\"  \",\"qty\":\"2\",\"price\":\"  \"}]",
+        "format": "json",
+        "sha256": "17887f92821f4bc8b62bb64a82203055b8da62dcd91b7877f5de71ce981a9d88"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "A1",
+            null,
+            "1",
+            null
+          ],
+          [
+            "VALUE",
+            "NULL",
+            "VALUE",
+            "NULL"
+          ]
+        ],
+        [
+          "s1",
+          2,
+          [
+            "B2",
+            null,
+            "2",
+            null
+          ],
+          [
+            "VALUE",
+            "VALUE",
+            "VALUE",
+            "VALUE"
+          ]
+        ]
+      ],
+      "issues": [],
+      "clean": [
+        1,
+        2
+      ],
+      "rejected": [],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "optional_invalid",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "[{\"id\":\"a1\",\"qty\":\"1\",\"price\":\"oops\"},{\"id\":\"b2\",\"qty\":\"2\",\"price\":\"-2\"}]",
+        "format": "json",
+        "sha256": "2a61b94896740b08eff3ebb5e3b9260b8845d0b52e4b4c8a6f8f1c7da489d584"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "A1",
+            null,
+            "1",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "VALUE"
+          ]
+        ],
+        [
+          "s1",
+          2,
+          [
+            "B2",
+            null,
+            "2",
+            "-2"
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "VALUE"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "invalid_value",
+          "s1",
+          1,
+          "price"
+        ],
+        [
+          "invalid_value",
+          "s1",
+          2,
+          "price"
+        ]
+      ],
+      "clean": [],
+      "rejected": [
+        1,
+        2
+      ],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "two_groups_order",
+    "sources": [
+      {
+        "reference": "z",
+        "content": "[{\"id\":\"b2\",\"qty\":\"1\"},{\"id\":\"a1\",\"qty\":\"2\"}]",
+        "format": "json",
+        "sha256": "cd88af7db87e7415a56ba35e95874dd27bdfd889648b8d81da0f7753d6a9d065"
+      },
+      {
+        "reference": "a",
+        "content": "[{\"id\":\"A1\",\"qty\":\"3\"},{\"id\":\"B2\",\"qty\":\"4\"}]",
+        "format": "json",
+        "sha256": "5f158e89a0c11728347fd6fdbbb59bc018ac61041105dca7b523bc2fe72574a6"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "z",
+          1,
+          [
+            "B2",
+            null,
+            "1",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "z",
+          2,
+          [
+            "A1",
+            null,
+            "2",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "a",
+          1,
+          [
+            "A1",
+            null,
+            "3",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "a",
+          2,
+          [
+            "B2",
+            null,
+            "4",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "duplicate",
+          "z",
+          1,
+          "id"
+        ],
+        [
+          "duplicate",
+          "z",
+          2,
+          "id"
+        ],
+        [
+          "duplicate",
+          "a",
+          1,
+          "id"
+        ],
+        [
+          "duplicate",
+          "a",
+          2,
+          "id"
+        ]
+      ],
+      "clean": [],
+      "rejected": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "groups": [
+        {
+          "canonical_id": "B2",
+          "members": [
+            1,
+            4
+          ],
+          "canonical_json": "[\"agentmine-data-duplicate-v2\",{\"contract_version\":2,\"duplicate_policy\":\"REJECT_ALL\",\"id_column\":\"id\"},\"B2\",[{\"reference\":\"z\",\"sha256\":\"cd88af7db87e7415a56ba35e95874dd27bdfd889648b8d81da0f7753d6a9d065\"},{\"reference\":\"a\",\"sha256\":\"5f158e89a0c11728347fd6fdbbb59bc018ac61041105dca7b523bc2fe72574a6\"}]]",
+          "group_id": "sha256:c312c17de56f481e8f8a304772030dc39b07bcdd27d9089e7246006ccb890eef"
+        },
+        {
+          "canonical_id": "A1",
+          "members": [
+            2,
+            3
+          ],
+          "canonical_json": "[\"agentmine-data-duplicate-v2\",{\"contract_version\":2,\"duplicate_policy\":\"REJECT_ALL\",\"id_column\":\"id\"},\"A1\",[{\"reference\":\"z\",\"sha256\":\"cd88af7db87e7415a56ba35e95874dd27bdfd889648b8d81da0f7753d6a9d065\"},{\"reference\":\"a\",\"sha256\":\"5f158e89a0c11728347fd6fdbbb59bc018ac61041105dca7b523bc2fe72574a6\"}]]",
+          "group_id": "sha256:48a0c0d6bb271ca7caa8447fa094f49054d1165830f7a2871a4b0df601b519ae"
+        }
+      ],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "unicode_group",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "[{\"id\":\" \\u00e91 \",\"qty\":\"1\"},{\"id\":\"\\u00c91\",\"qty\":\"2\"}]",
+        "format": "json",
+        "sha256": "3c70f312f381d0a9877ddbe44cc7d5789779e07611ca85f2b0428c4eb4670dab"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "\u00c91",
+            null,
+            "1",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ],
+        [
+          "s1",
+          2,
+          [
+            "\u00c91",
+            null,
+            "2",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "duplicate",
+          "s1",
+          1,
+          "id"
+        ],
+        [
+          "duplicate",
+          "s1",
+          2,
+          "id"
+        ]
+      ],
+      "clean": [],
+      "rejected": [
+        1,
+        2
+      ],
+      "groups": [
+        {
+          "canonical_id": "\u00c91",
+          "members": [
+            1,
+            2
+          ],
+          "canonical_json": "[\"agentmine-data-duplicate-v2\",{\"contract_version\":2,\"duplicate_policy\":\"REJECT_ALL\",\"id_column\":\"id\"},\"\\u00c91\",[{\"reference\":\"s1\",\"sha256\":\"3c70f312f381d0a9877ddbe44cc7d5789779e07611ca85f2b0428c4eb4670dab\"}]]",
+          "group_id": "sha256:8f356314a30ec932e9f602bfa7806badf1b5e6f0517348451f7c317a131518db"
+        }
+      ],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "csv_duplicates",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "id,qty,title,price\n a1 ,02,,\nA1,3,Mouse,1.50\n",
+        "format": "csv",
+        "sha256": "c08eb4f7ffb014347f48be10cab73ff119cdc1456adfb2b0befeb15b7faa77c0"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "A1",
+            null,
+            "2",
+            null
+          ],
+          [
+            "VALUE",
+            "VALUE",
+            "VALUE",
+            "VALUE"
+          ]
+        ],
+        [
+          "s1",
+          2,
+          [
+            "A1",
+            "mouse",
+            "3",
+            "1.5"
+          ],
+          [
+            "VALUE",
+            "VALUE",
+            "VALUE",
+            "VALUE"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "duplicate",
+          "s1",
+          1,
+          "id"
+        ],
+        [
+          "duplicate",
+          "s1",
+          2,
+          "id"
+        ]
+      ],
+      "clean": [],
+      "rejected": [
+        1,
+        2
+      ],
+      "groups": [
+        {
+          "canonical_id": "A1",
+          "members": [
+            1,
+            2
+          ],
+          "canonical_json": "[\"agentmine-data-duplicate-v2\",{\"contract_version\":2,\"duplicate_policy\":\"REJECT_ALL\",\"id_column\":\"id\"},\"A1\",[{\"reference\":\"s1\",\"sha256\":\"c08eb4f7ffb014347f48be10cab73ff119cdc1456adfb2b0befeb15b7faa77c0\"}]]",
+          "group_id": "sha256:69964c911c846d5ca4d0538f9f4acf6ca6084b46c84ea4429f0fe87de25f8e60"
+        }
+      ],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "csv_missing_header",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "id,title\nA1,Name\n",
+        "format": "csv",
+        "sha256": "d727cccb0983e1b6a999e071a19c3b15f951c58ee121ed77152c81cf4ddc9b24"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "A1",
+            "name",
+            null,
+            null
+          ],
+          [
+            "VALUE",
+            "VALUE",
+            "MISSING",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "missing_column",
+          "s1",
+          null,
+          "qty"
+        ],
+        [
+          "missing_column",
+          "s1",
+          1,
+          "qty"
+        ],
+        [
+          "missing_value",
+          "s1",
+          1,
+          "qty"
+        ]
+      ],
+      "clean": [],
+      "rejected": [
+        1
+      ],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "partial_malformed",
+    "sources": [
+      {
+        "reference": "bad",
+        "content": "[{\"id\":",
+        "format": "json",
+        "sha256": "ce622246122025dfc1a6edbba9be74b33f0d366770c128c8ca4a7c97935b6234"
+      },
+      {
+        "reference": "good",
+        "content": "[{\"id\":\"b2\",\"qty\":\"2\"}]",
+        "format": "json",
+        "sha256": "4c19290f5182580bea06b491a18ae153a2f9bde3e73a974ae06a68b1f6dc2bdd"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "good",
+          1,
+          [
+            "B2",
+            null,
+            "2",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "malformed_source",
+          "bad",
+          null,
+          null
+        ]
+      ],
+      "clean": [
+        1
+      ],
+      "rejected": [],
+      "groups": [],
+      "evidence_complete": false
+    },
+    "variant": "default",
+    "inventory": [
+      "validation.json"
+    ]
+  },
+  {
+    "name": "malformed_csv",
+    "sources": [
+      {
+        "reference": "bad",
+        "content": "id,qty\nA1,1,extra\n",
+        "format": "csv",
+        "sha256": "4e9d1c6d76fbe8d685f6df4fab771f907b459a841cb6fa3f0d824cb58842c7f5"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [],
+      "issues": [
+        [
+          "malformed_source",
+          "bad",
+          null,
+          null
+        ]
+      ],
+      "clean": [],
+      "rejected": [],
+      "groups": [],
+      "evidence_complete": false
+    },
+    "variant": "default",
+    "inventory": [
+      "validation.json"
+    ]
+  },
+  {
+    "name": "malformed_non_object",
+    "sources": [
+      {
+        "reference": "bad",
+        "content": "[{\"id\":\"a1\",\"qty\":\"1\"},42]",
+        "format": "json",
+        "sha256": "e0732302048e67dad9eec5c6634b8b2464ff7f5850af3bed368378f862aa2874"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [],
+      "issues": [
+        [
+          "malformed_source",
+          "bad",
+          null,
+          null
+        ]
+      ],
+      "clean": [],
+      "rejected": [],
+      "groups": [],
+      "evidence_complete": false
+    },
+    "variant": "default",
+    "inventory": [
+      "validation.json"
+    ]
+  },
+  {
+    "name": "empty",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "[]",
+        "format": "json",
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [],
+      "issues": [],
+      "clean": [],
+      "rejected": [],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "batch_count",
+    "sources": [
+      {
+        "reference": "s1",
+        "content": "[{\"id\":\"b2\",\"qty\":\"2\"}]",
+        "format": "json",
+        "sha256": "4c19290f5182580bea06b491a18ae153a2f9bde3e73a974ae06a68b1f6dc2bdd"
+      }
+    ],
+    "min_records": 2,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "B2",
+            null,
+            "2",
+            null
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [
+        [
+          "record_count",
+          null,
+          null,
+          null
+        ]
+      ],
+      "clean": [
+        1
+      ],
+      "rejected": [],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "variant": "default",
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "formula_and_quoting",
+    "variant": "default",
+    "sources": [
+      {
+        "reference": "s1",
+        "format": "json",
+        "content": "[{\"id\":\"A1\",\"title\":\"=CMD()\",\"qty\":\"1\",\"price\":null},{\"id\":\"A2\",\"title\":\"+CMD\",\"qty\":\"2\",\"price\":null},{\"id\":\"A3\",\"title\":\"-X\",\"qty\":\"3\",\"price\":null},{\"id\":\"A4\",\"title\":\"@X\",\"qty\":\"4\",\"price\":null},{\"id\":\"A5\",\"title\":\" Line,\\n\\\"Quoted\\\" \",\"qty\":\"5\",\"price\":null}]",
+        "sha256": "f34fd828fa4e7dce4d253b292066ec9156093ad9606bb3f4f904adc3f5c0d1fa"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "A1",
+            "=cmd()",
+            "1",
+            null
+          ],
+          [
+            "VALUE",
+            "VALUE",
+            "VALUE",
+            "NULL"
+          ]
+        ],
+        [
+          "s1",
+          2,
+          [
+            "A2",
+            "+cmd",
+            "2",
+            null
+          ],
+          [
+            "VALUE",
+            "VALUE",
+            "VALUE",
+            "NULL"
+          ]
+        ],
+        [
+          "s1",
+          3,
+          [
+            "A3",
+            "-x",
+            "3",
+            null
+          ],
+          [
+            "VALUE",
+            "VALUE",
+            "VALUE",
+            "NULL"
+          ]
+        ],
+        [
+          "s1",
+          4,
+          [
+            "A4",
+            "@x",
+            "4",
+            null
+          ],
+          [
+            "VALUE",
+            "VALUE",
+            "VALUE",
+            "NULL"
+          ]
+        ],
+        [
+          "s1",
+          5,
+          [
+            "A5",
+            "line,\n\"quoted\"",
+            "5",
+            null
+          ],
+          [
+            "VALUE",
+            "VALUE",
+            "VALUE",
+            "NULL"
+          ]
+        ]
+      ],
+      "issues": [],
+      "clean": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "rejected": [],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "negative_numeric_allowed",
+    "variant": "negative",
+    "sources": [
+      {
+        "reference": "s1",
+        "format": "json",
+        "content": "[{\"id\":\"A1\",\"qty\":\"01\",\"price\":\"-001.500\"}]",
+        "sha256": "e9b06d407894cf13ea1983163da8d5db87a4d24352206987de866ef80de3d1f6"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "A1",
+            null,
+            "1",
+            "-1.5"
+          ],
+          [
+            "VALUE",
+            "MISSING",
+            "VALUE",
+            "VALUE"
+          ]
+        ]
+      ],
+      "issues": [],
+      "clean": [
+        1
+      ],
+      "rejected": [],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "lookup_provenance",
+    "variant": "lookup",
+    "sources": [
+      {
+        "reference": "s1",
+        "format": "json",
+        "content": "[{\"id\":\"L1\",\"title\":\" ACC \",\"qty\":\"1\"}]",
+        "sha256": "32d668b79aaffdc3fb21fbc75b8bf3131efe16dba6285279c3464b6265ff6291"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "L1",
+            "accessory",
+            "1",
+            null
+          ],
+          [
+            "VALUE",
+            "VALUE",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [],
+      "clean": [
+        1
+      ],
+      "rejected": [],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  },
+  {
+    "name": "nested_presence",
+    "variant": "nested",
+    "sources": [
+      {
+        "reference": "s1",
+        "format": "json",
+        "content": "[{\"product\":{\"id\":\" n1 \",\"qty\":\"003\",\"title\":null}}]",
+        "sha256": "a04a4634418972de29825806b93626f6cbad336d5dfcc21aa9182921553ed176"
+      }
+    ],
+    "min_records": 0,
+    "max_records": 1000,
+    "expected": {
+      "records": [
+        [
+          "s1",
+          1,
+          [
+            "N1",
+            null,
+            "3",
+            null
+          ],
+          [
+            "VALUE",
+            "NULL",
+            "VALUE",
+            "MISSING"
+          ]
+        ]
+      ],
+      "issues": [],
+      "clean": [
+        1
+      ],
+      "rejected": [],
+      "groups": [],
+      "evidence_complete": true
+    },
+    "inventory": [
+      "clean.csv",
+      "clean.json",
+      "rejected.json",
+      "validation.json"
+    ]
+  }
+]

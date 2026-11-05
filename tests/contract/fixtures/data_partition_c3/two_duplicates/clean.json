@@ -1,0 +1,55 @@
+[
+  {
+    "_provenance": {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "fields": {
+        "id": {
+          "input_presence": "VALUE",
+          "lookup_evidence": null,
+          "path": [
+            "id"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        },
+        "price": {
+          "input_presence": "MISSING",
+          "lookup_evidence": null,
+          "path": [
+            "price"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        },
+        "qty": {
+          "input_presence": "VALUE",
+          "lookup_evidence": null,
+          "path": [
+            "qty"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        },
+        "title": {
+          "input_presence": "MISSING",
+          "lookup_evidence": null,
+          "path": [
+            "title"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        }
+      },
+      "locator": "fixture:s1",
+      "row_id": "row-3",
+      "sha256": "140f6b01e3a21ffde56772e7fdd1ead956566ec834034a3d7328f77ecdfada2e",
+      "source": "s1",
+      "source_row": 3,
+      "source_verification": "caller_supplied_unverified"
+    },
+    "id": "B2",
+    "price": null,
+    "qty": "3",
+    "title": null
+  }
+]

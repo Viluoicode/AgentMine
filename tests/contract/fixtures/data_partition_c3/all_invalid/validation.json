@@ -1,0 +1,49 @@
+{
+  "contract_version": 2,
+  "counts": {
+    "clean": 0,
+    "duplicate_groups": 0,
+    "parsed": 2,
+    "rejected": 2
+  },
+  "duplicate_groups": [],
+  "evidence_complete": true,
+  "input_valid": false,
+  "issues": [
+    {
+      "code": "invalid_value",
+      "column": "qty",
+      "row": 1,
+      "source": "s1"
+    },
+    {
+      "code": "missing_value",
+      "column": "qty",
+      "row": 1,
+      "source": "s1"
+    },
+    {
+      "code": "missing_value",
+      "column": "qty",
+      "row": 2,
+      "source": "s1"
+    }
+  ],
+  "policy": {
+    "contract_version": 2,
+    "duplicate_policy": "REJECT_ALL",
+    "id_column": "id"
+  },
+  "sources": [
+    {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "locator": "fixture:s1",
+      "parsed_count": 2,
+      "sha256": "7eb4d5ebad7bae02baed4087e60a8aa75c711f68c621a7023661ab449b79caf6",
+      "source": "s1",
+      "status": "PARSED"
+    }
+  ],
+  "total_input_records": 2,
+  "unresolved": []
+}

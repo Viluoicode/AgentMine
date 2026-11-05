@@ -1,0 +1,128 @@
+[
+  {
+    "_provenance": {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "fields": {
+        "id": {
+          "input_presence": "VALUE",
+          "lookup_evidence": null,
+          "path": [
+            "id"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        },
+        "price": {
+          "input_presence": "MISSING",
+          "lookup_evidence": null,
+          "path": [
+            "price"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        },
+        "qty": {
+          "input_presence": "VALUE",
+          "lookup_evidence": null,
+          "path": [
+            "qty"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        },
+        "title": {
+          "input_presence": "MISSING",
+          "lookup_evidence": null,
+          "path": [
+            "title"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        }
+      },
+      "locator": "fixture:s1",
+      "row_id": "row-1",
+      "sha256": "140f6b01e3a21ffde56772e7fdd1ead956566ec834034a3d7328f77ecdfada2e",
+      "source": "s1",
+      "source_row": 1,
+      "source_verification": "caller_supplied_unverified"
+    },
+    "reasons": [
+      {
+        "code": "duplicate",
+        "column": "id",
+        "group_id": "sha256:b38f10624b37589e4abe2208685bb58fc2b897b3daca247f7e6d90528a616fc2"
+      }
+    ],
+    "row_id": "row-1",
+    "values": {
+      "id": "A1",
+      "price": null,
+      "qty": "1",
+      "title": null
+    }
+  },
+  {
+    "_provenance": {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "fields": {
+        "id": {
+          "input_presence": "VALUE",
+          "lookup_evidence": null,
+          "path": [
+            "id"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        },
+        "price": {
+          "input_presence": "MISSING",
+          "lookup_evidence": null,
+          "path": [
+            "price"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        },
+        "qty": {
+          "input_presence": "VALUE",
+          "lookup_evidence": null,
+          "path": [
+            "qty"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        },
+        "title": {
+          "input_presence": "MISSING",
+          "lookup_evidence": null,
+          "path": [
+            "title"
+          ],
+          "semantic_evidence": null,
+          "semantic_unverified": false
+        }
+      },
+      "locator": "fixture:s1",
+      "row_id": "row-2",
+      "sha256": "140f6b01e3a21ffde56772e7fdd1ead956566ec834034a3d7328f77ecdfada2e",
+      "source": "s1",
+      "source_row": 2,
+      "source_verification": "caller_supplied_unverified"
+    },
+    "reasons": [
+      {
+        "code": "duplicate",
+        "column": "id",
+        "group_id": "sha256:b38f10624b37589e4abe2208685bb58fc2b897b3daca247f7e6d90528a616fc2"
+      }
+    ],
+    "row_id": "row-2",
+    "values": {
+      "id": "A1",
+      "price": null,
+      "qty": "2",
+      "title": null
+    }
+  }
+]

@@ -1,0 +1,44 @@
+{
+  "contract_version": 2,
+  "counts": {
+    "clean": 1,
+    "duplicate_groups": 0,
+    "parsed": 1,
+    "rejected": 0
+  },
+  "duplicate_groups": [],
+  "evidence_complete": true,
+  "input_valid": false,
+  "issues": [
+    {
+      "code": "record_count",
+      "column": null,
+      "row": null,
+      "source": null
+    }
+  ],
+  "policy": {
+    "contract_version": 2,
+    "duplicate_policy": "REJECT_ALL",
+    "id_column": "id"
+  },
+  "sources": [
+    {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "locator": "fixture:s1",
+      "parsed_count": 1,
+      "sha256": "4c19290f5182580bea06b491a18ae153a2f9bde3e73a974ae06a68b1f6dc2bdd",
+      "source": "s1",
+      "status": "PARSED"
+    }
+  ],
+  "total_input_records": 1,
+  "unresolved": [
+    {
+      "code": "record_count",
+      "column": null,
+      "row": null,
+      "source": null
+    }
+  ]
+}

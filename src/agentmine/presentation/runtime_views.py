@@ -27,7 +27,7 @@ def encode(value: object) -> object:
 
 
 def specification_view(spec: WorkSpecification) -> dict[str, object]:
-    return {
+    view = {
         "specification_id": spec.reference.value,
         "task": encode(spec.task),
         "actor": spec.actor.value,
@@ -55,3 +55,8 @@ def specification_view(spec: WorkSpecification) -> dict[str, object]:
         "preparation_dispatches_work": False,
         "specification_grants_submission_approval": False,
     }
+
+    if spec.output_policy is not None:
+        view["contract_version"] = spec.output_policy.contract_version
+        view["output_policy"] = encode(spec.output_policy)
+    return view

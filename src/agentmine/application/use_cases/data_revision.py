@@ -103,6 +103,7 @@ class PrepareDataRevision:
                 work.eligibility, work.policy, evaluation, work.eligibility_review_reference
             ),
             work.acceptance,
+            work.output_policy,
         )
         request = DataRevisionRequest(
             command.reference,

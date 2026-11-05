@@ -3,7 +3,13 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from agentmine.application.contracts.data import DataColumn, DataFormat, RowConstraint
+from agentmine.application.contracts.data import (
+    DataColumn,
+    DataFormat,
+    DataPartitionPolicy,
+    RowConstraint,
+    validate_partition_binding,
+)
 from agentmine.application.contracts.eligibility import EligibilityCheckRequest
 from agentmine.application.contracts.qa import DataAcceptanceCriteria
 from agentmine.application.contracts.runtime import InputEvidence
@@ -48,6 +54,7 @@ class PrepareDataRequest:
     constraints: tuple[RowConstraint, ...] = ()
     eligibility_review_reference: Reference | None = None
     acceptance: DataAcceptanceCriteria | None = None
+    output_policy: DataPartitionPolicy | None = None
 
     def __post_init__(self) -> None:
         for value in (self.reference, self.opportunity_reference, self.evaluation_reference):
@@ -58,6 +65,16 @@ class PrepareDataRequest:
             or any(not isinstance(item, ApprovedDataInput) for item in self.inputs)
         ):
             raise ValueError("1-10 approved input snapshots required")
+
+        if self.acceptance is not None and not isinstance(self.acceptance, DataAcceptanceCriteria):
+            raise ValueError("Typed acceptance required")
+        validate_partition_binding(
+            self.output_policy,
+            None if self.acceptance is None else self.acceptance.partition_acceptance,
+            self.columns,
+            self.unique_by,
+            self.max_records,
+        )
 
 
 @dataclass(frozen=True, slots=True)

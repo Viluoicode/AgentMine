@@ -16,8 +16,11 @@ from agentmine.application.errors import (
 from agentmine.application.ports.data import DataJournal
 from agentmine.application.ports.services import LLMProvider
 from agentmine.application.workers.data_artifacts import artifacts
+from agentmine.application.workers.data_partition import partition
+from agentmine.application.workers.data_partition_artifacts import render_partition_artifacts
 from agentmine.application.workers.data_semantic import apply_semantics, semantic_inputs
 from agentmine.application.workers.data_transform import transform, validate
+from agentmine.domain.errors import DomainError
 from agentmine.domain.finance import Cost, CostCategory
 from agentmine.domain.money import Money
 from agentmine.domain.spending import CostRecord
@@ -96,14 +99,45 @@ class DataWorker:
             request.estimated_cost,
         )
 
+    def _validate_partition_result(self, plan: DataPlan, result: DataResult) -> None:
+        if (
+            result.execution_reference != plan.execution.reference
+            or result.partition is None
+            or result.cost is None
+            or result.cost.actual_cost != plan.execution.authorization.request.estimated_cost
+        ):
+            raise PortError(
+                PortErrorCode.INVALID_RESPONSE,
+                "data",
+                "Retained v2 result or measured cost missing",
+            )
+        try:
+            expected = render_partition_artifacts(
+                plan, result.records, result.issues, result.partition
+            )
+        except DomainError:
+            raise PortError(
+                PortErrorCode.INVALID_RESPONSE, "data", "Invalid retained v2 evidence"
+            ) from None
+        if result.artifacts != expected:
+            raise PortError(PortErrorCode.INVALID_RESPONSE, "data", "Retained v2 artifact mismatch")
+
     def execute(self, plan: DataPlan) -> DataResult:
         self.journal.save_plan(plan)
         cached = self.journal.get_result(plan.execution.reference)
         if cached is not None:
+            if plan.output_policy is not None:
+                self._validate_partition_result(plan, cached)
             self._record(plan, cached.cost)
             return cached
         response = self.journal.get_response(plan.execution.reference)
         if response is not None:
+            if plan.output_policy is not None:
+                raise PortError(
+                    PortErrorCode.OUTCOME_UNKNOWN,
+                    "data",
+                    "Unexpected AI evidence in deterministic v2",
+                )
             self._validate_response(plan, response)
             self._record(plan, response.actual_cost)
         deadline = plan.execution.task.deadline
@@ -114,8 +148,12 @@ class DataWorker:
         if response is None:
             auth = plan.execution.authorization
             self.budget.require_authorized(auth, auth.request.estimated_cost)
-        records, issues = transform(plan)
-        issues += validate(plan, records, before_ai=bool(plan.semantic_columns))
+        assessment = None
+        if plan.output_policy is not None:
+            records, issues, assessment = partition(plan)
+        else:
+            records, issues = transform(plan)
+            issues += validate(plan, records, before_ai=bool(plan.semantic_columns))
         cost: CostRecord | None = self._zero_cost(plan)
         warnings = ["source_provenance_unverified", "infrastructure_cost_not_measured"]
         if plan.semantic_columns and not issues:
@@ -133,9 +171,12 @@ class DataWorker:
             plan.execution.reference,
             records,
             tuple(dict.fromkeys(issues)),
-            artifacts(plan, records, issues),
+            artifacts(plan, records, issues)
+            if assessment is None
+            else render_partition_artifacts(plan, records, issues, assessment),
             cost,
             tuple(warnings),
+            assessment,
         )
         # Persist result before recording: a failed ledger write can recover without AI calls.
         self.journal.save_result(result)

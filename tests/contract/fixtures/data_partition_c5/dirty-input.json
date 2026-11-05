@@ -1,0 +1,28 @@
+[
+  {
+    "id": " a001 ",
+    "name": " USB Cable ",
+    "category": " ELEC ",
+    "price": "12.500",
+    "stock": "003"
+  },
+  {
+    "id": "a002",
+    "name": "  ",
+    "category": "mystery",
+    "price": "oops",
+    "stock": "-1"
+  },
+  {
+    "id": "A001",
+    "name": "USB Cable",
+    "category": "electronics",
+    "price": "12.5",
+    "stock": "3"
+  },
+  {
+    "name": " Mouse ",
+    "category": "ACC",
+    "price": "8.00"
+  }
+]

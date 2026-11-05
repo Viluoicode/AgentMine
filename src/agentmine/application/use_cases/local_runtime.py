@@ -6,7 +6,12 @@ from agentmine.application.contracts.execution_evidence import DataExecutionEvid
 from agentmine.application.contracts.local_runtime import ArtifactExport, PrepareDataRequest
 from agentmine.application.contracts.qa import bundle_content
 from agentmine.application.contracts.records import Versioned
-from agentmine.application.contracts.runtime import InputEvidence, RuntimeStatus, WorkSpecification
+from agentmine.application.contracts.runtime import (
+    InputEvidence,
+    RuntimeStatus,
+    WorkerResult,
+    WorkSpecification,
+)
 from agentmine.application.contracts.worker_execution import (
     ExecuteWorkerRequest,
     WorkerExecutionOutcome,
@@ -25,6 +30,9 @@ from agentmine.application.ports.services import Clock, OpportunitySource
 from agentmine.application.use_cases.context import load, observe_status, require_state
 from agentmine.application.use_cases.worker_execution import ExecuteWorkerTask
 from agentmine.application.use_cases.worker_preflight import WorkerPreflight
+from agentmine.application.workers.data_partition import partition
+from agentmine.application.workers.data_partition_artifacts import render_partition_artifacts
+from agentmine.domain.errors import DomainError
 from agentmine.domain.opportunity import Opportunity, OpportunityState
 from agentmine.domain.values import Reference
 
@@ -90,6 +98,7 @@ class PrepareDataSpecification:
                 request.eligibility_review_reference,
             ),
             request.acceptance,
+            request.output_policy,
         )
         if existing is not None and existing != candidate:
             raise PortError(PortErrorCode.CONFLICT, "prepare_work", "Specification identity reused")
@@ -162,6 +171,40 @@ class ExportDataArtifacts:
         ):
             raise PortError(
                 PortErrorCode.CONFLICT, "export", "Matching operator and retained result required"
+            )
+        if view.run.specification.output_policy is not None:
+            try:
+                if (
+                    not view.finished
+                    or view.run.binding.execution_reference != reference
+                    or self.runtime.get_specification(view.run.specification.reference)
+                    != view.run.specification
+                    or bundle_content(view.result).reference != view.deliverable.content_reference
+                ):
+                    raise ValueError("Original completed evidence required")
+                WorkerResult(view.run, view.result)
+                records, issues, assessment = partition(view.run.plan)
+                if (view.result.records, view.result.issues, view.result.partition) != (
+                    records,
+                    issues,
+                    assessment,
+                ) or view.result.artifacts != render_partition_artifacts(
+                    view.run.plan, records, issues, assessment
+                ):
+                    raise ValueError("Retained artifact/evidence mismatch")
+            except (DomainError, ValueError, TypeError, AttributeError):
+                raise PortError(
+                    PortErrorCode.INVALID_RESPONSE,
+                    "export",
+                    "Invalid retained v2 evidence or content digest",
+                ) from None
+            return self.exporter.export(
+                reference,
+                view.deliverable.content_reference,
+                view.result.artifacts,
+                deliverable=view.deliverable,
+                output_policy=view.run.specification.output_policy,
+                evidence_complete=assessment.evidence_complete,
             )
         return self.exporter.export(
             reference,

@@ -235,14 +235,27 @@ class SnapshotCodec:
         elif cls is opportunities.OpportunityStatus:
             legacy_defaults = {"terms_reference": None, "requirements": None}
         elif cls is runtime.WorkSpecification:
-            # Two explicitly additive optional fields. Missing evidence is never fabricated.
+            # Explicit optional fields only. Missing v2 bindings still fail model validation.
             missing_optional = {
                 key: self._encode(None)
-                for key in ("execution_evidence", "acceptance")
+                for key in ("execution_evidence", "acceptance", "output_policy")
                 if key not in node["fields"]
             }
             if missing_optional:
                 node = dict(node, fields={**node["fields"], **missing_optional})
+        elif cls is data.DataPlan:
+            optional = {
+                key: self._encode(None)
+                for key in ("output_policy", "partition_acceptance")
+                if key not in node["fields"]
+            }
+            node = dict(node, fields={**node["fields"], **optional})
+        elif cls is data.DataCell:
+            legacy_defaults = {"input_presence": None}
+        elif cls is data.DataResult:
+            legacy_defaults = {"partition": None}
+        elif cls in (qa_contracts.DataAcceptanceCriteria, qa_contracts.QAInspection):
+            legacy_defaults = {"partition_acceptance": None}
         elif cls is opportunity.Opportunity:
             legacy_defaults = {"payment_verification": None}
         elif cls is submission.PaymentVerificationResult:

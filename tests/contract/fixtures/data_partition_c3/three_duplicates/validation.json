@@ -1,0 +1,77 @@
+{
+  "contract_version": 2,
+  "counts": {
+    "clean": 0,
+    "duplicate_groups": 1,
+    "parsed": 3,
+    "rejected": 3
+  },
+  "duplicate_groups": [
+    {
+      "canonical_id": "A1",
+      "group_id": "sha256:d9b86b94b341854112b269cd717deea867db28d7db1d081e7e9fa1b8eb68d847",
+      "members": [
+        {
+          "row_id": "row-1",
+          "sha256": "05ccb1522ea280e94df96d2f799d329ae3c5ae88b2b470de5a209bc5c19759c9",
+          "source": "s1",
+          "source_row": 1
+        },
+        {
+          "row_id": "row-2",
+          "sha256": "05ccb1522ea280e94df96d2f799d329ae3c5ae88b2b470de5a209bc5c19759c9",
+          "source": "s1",
+          "source_row": 2
+        },
+        {
+          "row_id": "row-3",
+          "sha256": "05ccb1522ea280e94df96d2f799d329ae3c5ae88b2b470de5a209bc5c19759c9",
+          "source": "s1",
+          "source_row": 3
+        }
+      ]
+    }
+  ],
+  "evidence_complete": true,
+  "input_valid": false,
+  "issues": [
+    {
+      "code": "duplicate",
+      "column": "id",
+      "group_id": "sha256:d9b86b94b341854112b269cd717deea867db28d7db1d081e7e9fa1b8eb68d847",
+      "row": 1,
+      "source": "s1"
+    },
+    {
+      "code": "duplicate",
+      "column": "id",
+      "group_id": "sha256:d9b86b94b341854112b269cd717deea867db28d7db1d081e7e9fa1b8eb68d847",
+      "row": 2,
+      "source": "s1"
+    },
+    {
+      "code": "duplicate",
+      "column": "id",
+      "group_id": "sha256:d9b86b94b341854112b269cd717deea867db28d7db1d081e7e9fa1b8eb68d847",
+      "row": 3,
+      "source": "s1"
+    }
+  ],
+  "policy": {
+    "contract_version": 2,
+    "duplicate_policy": "REJECT_ALL",
+    "id_column": "id"
+  },
+  "sources": [
+    {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "locator": "fixture:s1",
+      "parsed_count": 3,
+      "sha256": "05ccb1522ea280e94df96d2f799d329ae3c5ae88b2b470de5a209bc5c19759c9",
+      "source": "s1",
+      "status": "PARSED"
+    }
+  ],
+  "total_input_records": 3,
+  "unresolved": []
+}

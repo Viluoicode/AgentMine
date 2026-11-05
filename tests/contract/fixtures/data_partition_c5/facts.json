@@ -1,0 +1,1 @@
+{"facts": {"ai_policy": "allowed", "geography": {"allowed": [], "excluded": []}, "account": "not_required", "identity": "not_required", "physical_presence": "not_required", "task_type": "data_processing", "required_skills": [], "submission": "automatic", "payment": {"upfront_fee": false, "secret_credentials": false}, "prohibited_actions": []}, "profile": {}}

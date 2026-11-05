@@ -1,0 +1,61 @@
+[
+  {
+    "name": "id",
+    "path": [
+      "id"
+    ],
+    "case": "upper"
+  },
+  {
+    "name": "name",
+    "path": [
+      "name"
+    ],
+    "case": "lower"
+  },
+  {
+    "name": "category",
+    "path": [
+      "category"
+    ],
+    "case": "lower",
+    "lookup": [
+      {
+        "key": "elec",
+        "value": "electronics"
+      },
+      {
+        "key": "electronics",
+        "value": "electronics"
+      },
+      {
+        "key": "acc",
+        "value": "accessories"
+      }
+    ],
+    "lookup_evidence": "simulation:client-category-map"
+  },
+  {
+    "name": "price",
+    "path": [
+      "price"
+    ],
+    "kind": "decimal",
+    "minimum": "0"
+  },
+  {
+    "name": "stock",
+    "path": [
+      "stock"
+    ],
+    "kind": "integer",
+    "minimum": "0"
+  },
+  {
+    "name": "brand",
+    "path": [
+      "brand"
+    ],
+    "required": false
+  }
+]

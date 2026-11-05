@@ -1,0 +1,191 @@
+[
+  {
+    "case": "all_valid",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "PASS",
+    "code": "PARTITION_ACCEPTED"
+  },
+  {
+    "case": "mixed",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "PASS",
+    "code": "PARTITION_ACCEPTED"
+  },
+  {
+    "case": "mixed",
+    "min_clean": 1,
+    "max_rejected": 0,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_REJECT_LIMIT"
+  },
+  {
+    "case": "all_valid",
+    "min_clean": 3,
+    "max_rejected": 2,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_CLEAN_MINIMUM"
+  },
+  {
+    "case": "all_invalid",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_CLEAN_MINIMUM"
+  },
+  {
+    "case": "two_duplicates",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "PASS",
+    "code": "PARTITION_ACCEPTED"
+  },
+  {
+    "case": "two_duplicates",
+    "min_clean": 1,
+    "max_rejected": 0,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_REJECT_LIMIT"
+  },
+  {
+    "case": "three_duplicates",
+    "min_clean": 1,
+    "max_rejected": 3,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_CLEAN_MINIMUM"
+  },
+  {
+    "case": "cross_source",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "PASS",
+    "code": "PARTITION_ACCEPTED"
+  },
+  {
+    "case": "duplicate_and_error",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_CLEAN_MINIMUM"
+  },
+  {
+    "case": "missing_null_blank_ids",
+    "min_clean": 1,
+    "max_rejected": 3,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_CLEAN_MINIMUM"
+  },
+  {
+    "case": "invalid_ids_not_grouped",
+    "min_clean": 1,
+    "max_rejected": 3,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_CLEAN_MINIMUM"
+  },
+  {
+    "case": "optional_null_and_blank",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "PASS",
+    "code": "PARTITION_ACCEPTED"
+  },
+  {
+    "case": "optional_invalid",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_CLEAN_MINIMUM"
+  },
+  {
+    "case": "two_groups_order",
+    "min_clean": 1,
+    "max_rejected": 4,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_CLEAN_MINIMUM"
+  },
+  {
+    "case": "unicode_group",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_CLEAN_MINIMUM"
+  },
+  {
+    "case": "csv_duplicates",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_CLEAN_MINIMUM"
+  },
+  {
+    "case": "csv_missing_header",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_GLOBAL_ISSUE"
+  },
+  {
+    "case": "partial_malformed",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_INCOMPLETE"
+  },
+  {
+    "case": "malformed_csv",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_INCOMPLETE"
+  },
+  {
+    "case": "malformed_non_object",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_INCOMPLETE"
+  },
+  {
+    "case": "empty",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_CLEAN_MINIMUM"
+  },
+  {
+    "case": "batch_count",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "NEEDS_REVISION",
+    "code": "PARTITION_GLOBAL_ISSUE"
+  },
+  {
+    "case": "formula_and_quoting",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "PASS",
+    "code": "PARTITION_ACCEPTED"
+  },
+  {
+    "case": "negative_numeric_allowed",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "PASS",
+    "code": "PARTITION_ACCEPTED"
+  },
+  {
+    "case": "lookup_provenance",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "PASS",
+    "code": "PARTITION_ACCEPTED"
+  },
+  {
+    "case": "nested_presence",
+    "min_clean": 1,
+    "max_rejected": 2,
+    "outcome": "PASS",
+    "code": "PARTITION_ACCEPTED"
+  }
+]

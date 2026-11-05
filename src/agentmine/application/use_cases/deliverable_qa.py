@@ -1,10 +1,11 @@
 """Ordered, evidence-bearing deliverable QA; never submit or grant human approval."""
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from agentmine.application.budget_manager import BudgetManager
 from agentmine.application.contracts.ai import ReferencedText
+from agentmine.application.contracts.data import DataPlan
 from agentmine.application.contracts.operational_qa import QAApplicationBinding, QACompletion
 from agentmine.application.contracts.qa import QAInspection, lifecycle_qa_result
 from agentmine.application.errors import PortError, PortErrorCode
@@ -49,6 +50,20 @@ class DeliverableQA:
     def execute(
         self, inspection: QAInspection, *, binding: QAApplicationBinding | None = None
     ) -> QAReport:
+        if isinstance(inspection.plan, DataPlan) and inspection.plan.output_policy is not None:
+            replace(inspection)  # Revalidate typed version/threshold binding before persistence.
+            if binding is None or self.lifecycle is None:
+                raise PortError(
+                    PortErrorCode.UNSUPPORTED, "qa", "V2 requires operational evidence binding"
+                )
+            if (
+                self.llm is not None
+                or self.budget is not None
+                or inspection.ai_authorization is not None
+            ):
+                raise PortError(
+                    PortErrorCode.UNSUPPORTED, "qa", "V2 QA is deterministic and zero-AI only"
+                )
         if binding is not None:
             if self.lifecycle is None:
                 raise PortError(

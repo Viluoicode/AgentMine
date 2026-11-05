@@ -7,7 +7,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
-from agentmine.application.contracts.data import DataArtifact
+from agentmine.application.contracts.data import DataArtifact, DataPartitionPolicy
 from agentmine.application.contracts.local_runtime import ArtifactExport, ExportedArtifact
 from agentmine.application.errors import PortError, PortErrorCode
 from agentmine.domain.values import Reference
@@ -26,6 +26,8 @@ class LocalArtifactExporter:
         artifacts: tuple[DataArtifact, ...],
         *,
         deliverable: Deliverable | None = None,
+        output_policy: DataPartitionPolicy | None = None,
+        evidence_complete: bool | None = None,
     ) -> ArtifactExport:
         try:
             if self.directory is None:
@@ -34,12 +36,33 @@ class LocalArtifactExporter:
             reject_links(directory.parent)
             directory.mkdir(exist_ok=True)
             reject_links(directory)
+            allowed: tuple[str, ...] = ("data.csv", "data.json", "validation.json")
+            if output_policy is not None:
+                if (
+                    not isinstance(output_policy, DataPartitionPolicy)
+                    or type(evidence_complete) is not bool
+                    or deliverable is None
+                ):
+                    raise ValueError("Explicit retained v2 contract and deliverable required")
+                output_policy.__post_init__()
+                expected = (
+                    (
+                        ("clean.csv", "text/csv"),
+                        ("clean.json", "application/json"),
+                        ("rejected.json", "application/json"),
+                        ("validation.json", "application/json"),
+                    )
+                    if evidence_complete
+                    else (("validation.json", "application/json"),)
+                )
+                if tuple((a.name, a.media_type) for a in artifacts) != expected:
+                    raise ValueError("Exact version-bound artifact inventory required")
+                allowed = tuple(name for name, _ in expected)
+            elif evidence_complete is not None:
+                raise ValueError("Completeness requires explicit contract")
             payloads: dict[str, bytes] = {}
             for artifact in artifacts:
-                if (
-                    artifact.name not in ("data.csv", "data.json", "validation.json")
-                    or artifact.name in payloads
-                ):
+                if artifact.name not in allowed or artifact.name in payloads:
                     raise ValueError("Unsupported artifact inventory")
                 payloads[artifact.name] = artifact.content.encode("utf-8")
             exported = tuple(
@@ -55,6 +78,14 @@ class LocalArtifactExporter:
                     for item in exported
                 ],
             }
+            if output_policy is not None:
+                manifest["contract_version"] = output_policy.contract_version
+                manifest["output_policy"] = {
+                    "contract_version": output_policy.contract_version,
+                    "id_column": output_policy.id_column,
+                    "duplicate_policy": output_policy.duplicate_policy.value,
+                }
+                manifest["evidence_complete"] = evidence_complete
             if deliverable is not None:
                 if (
                     deliverable.execution_reference != execution

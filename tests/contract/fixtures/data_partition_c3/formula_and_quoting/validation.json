@@ -1,0 +1,30 @@
+{
+  "contract_version": 2,
+  "counts": {
+    "clean": 5,
+    "duplicate_groups": 0,
+    "parsed": 5,
+    "rejected": 0
+  },
+  "duplicate_groups": [],
+  "evidence_complete": true,
+  "input_valid": true,
+  "issues": [],
+  "policy": {
+    "contract_version": 2,
+    "duplicate_policy": "REJECT_ALL",
+    "id_column": "id"
+  },
+  "sources": [
+    {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "locator": "fixture:s1",
+      "parsed_count": 5,
+      "sha256": "f34fd828fa4e7dce4d253b292066ec9156093ad9606bb3f4f904adc3f5c0d1fa",
+      "source": "s1",
+      "status": "PARSED"
+    }
+  ],
+  "total_input_records": 5,
+  "unresolved": []
+}

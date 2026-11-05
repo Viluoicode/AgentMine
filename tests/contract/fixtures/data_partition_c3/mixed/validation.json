@@ -1,0 +1,37 @@
+{
+  "contract_version": 2,
+  "counts": {
+    "clean": 1,
+    "duplicate_groups": 0,
+    "parsed": 2,
+    "rejected": 1
+  },
+  "duplicate_groups": [],
+  "evidence_complete": true,
+  "input_valid": false,
+  "issues": [
+    {
+      "code": "invalid_value",
+      "column": "qty",
+      "row": 1,
+      "source": "s1"
+    }
+  ],
+  "policy": {
+    "contract_version": 2,
+    "duplicate_policy": "REJECT_ALL",
+    "id_column": "id"
+  },
+  "sources": [
+    {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "locator": "fixture:s1",
+      "parsed_count": 2,
+      "sha256": "9cfa5b7002f3fd844f27bc91ef2eafc43000223cdbe7b9d475aebc14a058a6a9",
+      "source": "s1",
+      "status": "PARSED"
+    }
+  ],
+  "total_input_records": 2,
+  "unresolved": []
+}

@@ -1,0 +1,44 @@
+{
+  "contract_version": 2,
+  "counts": {
+    "clean": 0,
+    "duplicate_groups": 0,
+    "parsed": 0,
+    "rejected": 0
+  },
+  "duplicate_groups": [],
+  "evidence_complete": false,
+  "input_valid": false,
+  "issues": [
+    {
+      "code": "malformed_source",
+      "column": null,
+      "row": null,
+      "source": "bad"
+    }
+  ],
+  "policy": {
+    "contract_version": 2,
+    "duplicate_policy": "REJECT_ALL",
+    "id_column": "id"
+  },
+  "sources": [
+    {
+      "collected_at": "2026-10-25T00:00:00+00:00",
+      "locator": "fixture:bad",
+      "parsed_count": null,
+      "sha256": "4e9d1c6d76fbe8d685f6df4fab771f907b459a841cb6fa3f0d824cb58842c7f5",
+      "source": "bad",
+      "status": "MALFORMED"
+    }
+  ],
+  "total_input_records": null,
+  "unresolved": [
+    {
+      "code": "malformed_source",
+      "column": null,
+      "row": null,
+      "source": "bad"
+    }
+  ]
+}

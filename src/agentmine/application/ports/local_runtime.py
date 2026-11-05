@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from agentmine.application.contracts.data import DataArtifact, DataSource
+from agentmine.application.contracts.data import DataArtifact, DataPartitionPolicy, DataSource
 from agentmine.application.contracts.local_runtime import ApprovedDataInput, ArtifactExport
 from agentmine.domain.values import Reference
 from agentmine.domain.work import Deliverable
@@ -20,4 +20,6 @@ class ArtifactExporter(Protocol):
         artifacts: tuple[DataArtifact, ...],
         *,
         deliverable: Deliverable | None = None,
+        output_policy: DataPartitionPolicy | None = None,
+        evidence_complete: bool | None = None,
     ) -> ArtifactExport: ...

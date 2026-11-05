@@ -117,6 +117,18 @@ class DataRevisionRequest:
             all(item in new.formats for item in old.formats)
             and all(item in new.requirements for item in old.requirements)
         )
+        require(spec.output_policy == parent.specification.output_policy)
+        if old.partition_acceptance is not None:
+            require(new.partition_acceptance is not None)
+            assert new.partition_acceptance is not None
+            require(
+                new.partition_acceptance.min_clean_records
+                >= old.partition_acceptance.min_clean_records
+                and new.partition_acceptance.max_rejected_records
+                <= old.partition_acceptance.max_rejected_records
+            )
+        else:
+            require(new.partition_acceptance is None)
         # Only structurally provable non-relaxing validation changes are supported.
         require(
             spec.min_records >= parent.specification.min_records

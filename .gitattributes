@@ -1,0 +1,5 @@
+tests/contract/fixtures/data_partition/** -text
+tests/contract/fixtures/data_partition_c2/** -text
+tests/contract/fixtures/data_partition_c3/** -text
+tests/contract/fixtures/data_partition_c4/** -text
+tests/contract/fixtures/data_partition_c5/** -text

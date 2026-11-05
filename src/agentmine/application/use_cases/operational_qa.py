@@ -46,6 +46,12 @@ class RunOperationalDataQA:
             raise ApplicationError(
                 ApplicationErrorCode.NOT_FOUND, "qa", "Retained execution required"
             )
+        partitioned = run.specification.output_policy is not None
+        if (
+            partitioned
+            and self.runtime.get_specification(run.specification.reference) != run.specification
+        ):
+            raise invalid("Original approved specification unavailable or changed")
         criteria = run.specification.acceptance
         if (
             run.specification.actor != self.operator
@@ -72,9 +78,29 @@ class RunOperationalDataQA:
                 or inspection.plan != run.plan
                 or inspection.formats != criteria.formats
                 or inspection.requirements != criteria.requirements
+                or (
+                    partitioned
+                    and (
+                        inspection.partition_acceptance != criteria.partition_acceptance
+                        or inspection.min_verified_sources != 1
+                        or inspection.ai_authorization is not None
+                    )
+                )
             ):
                 raise invalid("Inspection identity/evidence changed")
             if cached is not None and self.repository.applied(inspection_reference):
+                if partitioned:
+                    history = self.runtime.inspect(execution)
+                    content = self.executions.get_content(binding.deliverable.content_reference)
+                    if (
+                        history is None
+                        or history.run != run
+                        or history.result != inspection.result
+                        or history.deliverable != inspection.deliverable
+                        or content is None
+                        or bundle_content(inspection.result) != content
+                    ):
+                        raise invalid("Historical retained evidence differs from inspection")
                 return self.validator.execute(inspection, binding=binding)
         else:
             inspection = None
@@ -108,13 +134,18 @@ class RunOperationalDataQA:
             view.result,
             criteria.formats,
             criteria.requirements,
+            partition_acceptance=criteria.partition_acceptance,
         )
         if inspection is not None and candidate != inspection:
             raise invalid("Retained QA inspection differs from authoritative evidence")
         if binding is not None and binding.opportunity_snapshot != current:
             raise invalid("Opportunity changed after inspection claim")
         if cached is None:
-            reason = self.preflight.check(run.specification, current.value)
+            reason = (
+                self.preflight.check_qa(run.specification, current.value)
+                if partitioned
+                else self.preflight.check(run.specification, current.value)
+            )
             if reason is not None:
                 raise ApplicationError(
                     ApplicationErrorCode.UNRESOLVED, "qa_preflight", reason.value

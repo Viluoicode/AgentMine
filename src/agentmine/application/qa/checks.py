@@ -13,6 +13,8 @@ from agentmine.application.contracts.qa import (
     bundle_content,
 )
 from agentmine.application.contracts.research import ResearchResult, TaskPlan, VerificationStatus
+from agentmine.application.qa.partition_checks import acceptance as partition_acceptance
+from agentmine.application.qa.partition_checks import evidence as partition_evidence
 from agentmine.application.workers.artifacts import render_artifacts
 from agentmine.application.workers.data_artifacts import artifacts as data_artifacts
 from agentmine.application.workers.data_transform import normalize, strict_json, transform, validate
@@ -57,6 +59,16 @@ def deterministic(inspection: QAInspection, stored_content: str | None) -> tuple
             "Exact stored bundle matches the deliverable content digest.",
         )
     ]
+    if isinstance(inspection.plan, DataPlan) and inspection.plan.output_policy is not None:
+        verified = partition_evidence(inspection)
+        findings.append(verified)
+        if verified.outcome != QAOutcome.PASS:
+            return tuple(findings)
+        assert isinstance(inspection.result, DataResult) and inspection.result.partition is not None
+        if not inspection.result.partition.evidence_complete:
+            # The exact validation-only inventory is legitimate diagnostic evidence;
+            # domain acceptance must reject incompleteness, not invent missing datasets.
+            return tuple(findings)
     files = {artifact.name: artifact for artifact in inspection.result.artifacts}
     parsed: dict[str, object] = {}
     for format_requirement in inspection.formats:
@@ -117,6 +129,15 @@ def deterministic(inspection: QAInspection, stored_content: str | None) -> tuple
                     if line.startswith("#")
                 }
                 covered = requirement.criterion in headings
+            elif requirement.kind == CoverageKind.FIELD_PRESENT:
+                value = parsed.get(artifact.name)
+                covered = (
+                    isinstance(inspection.plan, DataPlan)
+                    and inspection.plan.output_policy is not None
+                    and artifact.name == "clean.json"
+                    and isinstance(value, list)
+                    and all(isinstance(row, dict) and requirement.criterion in row for row in value)
+                )
             elif requirement.kind == CoverageKind.COLUMN:
                 value = parsed.get(artifact.name)
                 if artifact.media_type == ArtifactFormat.JSON:
@@ -268,6 +289,8 @@ def research_checks(
 def data_checks(
     inspection: QAInspection, plan: DataPlan, result: DataResult, now: datetime
 ) -> tuple[QAFinding, ...]:
+    if plan.output_policy is not None:
+        return partition_acceptance(inspection, now)
     stage = QAStage.DOMAIN_SPECIFIC
     baseline, input_issues = transform(plan)
     if len(baseline) != len(result.records) or any(

@@ -1,0 +1,52 @@
+{
+  "policy": {
+    "contract_version": 2,
+    "id_column": "id",
+    "duplicate_policy": "REJECT_ALL"
+  },
+  "acceptance": {
+    "contract_version": 2,
+    "min_clean_records": 1,
+    "max_rejected_records": 2
+  },
+  "examples": [
+    {
+      "input_ids": [
+        " a001 ",
+        "A001",
+        "B002"
+      ],
+      "expected_clean_ids": [
+        "B002"
+      ],
+      "expected_rejected_rows": [
+        1,
+        2
+      ],
+      "duplicate_groups": [
+        {
+          "id": "A001",
+          "members": [
+            1,
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "input_ids": [
+        null,
+        null,
+        "B002"
+      ],
+      "expected_clean_ids": [
+        "B002"
+      ],
+      "expected_rejected_rows": [
+        1,
+        2
+      ],
+      "duplicate_groups": []
+    }
+  ]
+}
