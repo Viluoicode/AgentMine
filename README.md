@@ -11,6 +11,13 @@ The North Star is **Verified Reward − AI Cost − Tool Cost − Infrastructure
 
 See [Product Constitution](docs/product-constitution.md) for scope and
 [architecture](docs/architecture.md) for dependency rules.
+For the local deterministic Data workflow, see
+[partitioned deliverable design](docs/design/data-partitioned-deliverables.md) and
+[offline validation evidence](docs/testing/partitioned-deliverables.md).
+V2 is explicit opt-in; v1 remains the default. QA PASS means human review, not
+automatic submission. These local capabilities do not establish live bounty
+eligibility, production readiness or verified earnings. Milestone descriptions
+below retain their historical scope; use the current guides for operator steps.
 See the [security review](docs/security-review.md) for findings, focused fixes,
 adversarial checks and remaining deployment limits.
 See the [Clean Architecture audit](docs/clean-architecture-audit.md) for confirmed

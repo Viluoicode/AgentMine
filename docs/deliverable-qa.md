@@ -6,6 +6,15 @@ port is available to it. No additional dependency or external API is introduced.
 
 ## Inputs and order
 
+For deterministic Data v2, operational QA loads the retained plan/result and frozen
+acceptance, replays sources and compares exact evidence/artifacts before applying
+thresholds. Input issues and rejected rows do not alone determine client acceptance.
+See [v2 QA semantics](design/data-partitioned-deliverables.md#artifacts-và-frozen-acceptance)
+and [offline QA tests](testing/partitioned-deliverables.md). The v1 `COLUMN` semantics
+below remain unchanged; v2 additionally supports `FIELD_PRESENT`. No caller may
+change approved criteria after execution merely to obtain PASS. Operational
+inspection construction is described in the [operator guide](operator-interface.md#operational-qa).
+
 The trusted caller loads the approved worker plan and retained result, declares required
 artifacts and acceptance criteria, and builds `QAInspection`. Persist `bundle_content(result)`
 through ExecutionRepository and use its SHA-256 reference in the versioned Deliverable

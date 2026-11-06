@@ -3,7 +3,7 @@
 ## Status
 
 Implemented for the explicitly authorized F02-B1 checkpoint of the approved
-[F02-A plan](../audits/remediation-03-runtime-plan.md). Execution orchestration,
+[local runtime workflow](../operator-interface.md#deterministic-data-commands). Execution orchestration,
 freshness preflight and CLI work commands remain deferred to F02-B2.
 
 ## Context

@@ -2,15 +2,15 @@
 
 F02-B3-A adds explicit local `opportunity` and `work` commands for deterministic
 Data execution and artifact export. See the
-[B3-A commands and input guide](audits/remediation-03-b3a-operator-cli.md#commands-and-inputs).
+[deterministic Data commands](#deterministic-data-commands).
 Execution stops at QA_PENDING. F02-B3-B adds explicit `work qa` with retained
 approved acceptance criteria; see the
-[operational QA guide](audits/remediation-03-b3b-operational-qa.md#operator-commands).
+[operational QA guide](#operational-qa).
 External submission remains absent.
 
 Human eligibility review now has separate `eligibility prepare`, `eligibility show`
 and `eligibility decide` commands. See the
-[F04 remediation guide](audits/remediation-02-eligibility-review.md#9-operator-use-and-limitations)
+[eligibility review guide](#eligibility-review)
 for evidence inputs, source refresh and limitations. Eligibility approval never
 grants submission approval.
 
@@ -223,6 +223,346 @@ Currency/timezone remain fixed. Policy changes preserve financial history and ne
 resume tasks or grant spending/submission approval. Existing paid/legacy waits and
 ambiguous effects remain inspect-only.
 
-See [the B4-1 report and command examples](audits/remediation-03-b4-1-budget-control.md)
+See [policy consent and command examples](#budget-policy-control)
 and [ADR 0027](adr/0027-audited-local-budget-control.md) for transactions, safe retries,
 input schema and limitations. `workspace init` remains initialization, not policy reset.
+
+## Deterministic Data commands
+
+Use one initialized SQLite workspace, its actual ledger and the configured
+`AGENTMINE_OPERATOR_ID`. These commands are separate operator actions, not an
+automatic run-all script. Inspect `opportunity --help` and `work --help` first.
+Select an actual retained opportunity from `dashboard`, then use:
+
+```text
+opportunity show --opportunity ID
+opportunity eligibility --opportunity ID --facts FILE --minimum-time-seconds N
+opportunity evaluate --opportunity ID --inputs FILE
+opportunity score --opportunity ID --evaluation EVALUATION_ID --inputs FILE
+opportunity plan --opportunity ID --task TASK_ID --description DESCRIPTION
+work prepare --opportunity ID --spec-id SPEC_ID --inputs FILE --input-root DIRECTORY --facts FILE --minimum-time-seconds N --evaluation EVALUATION_ID --approve-inputs
+work show --spec-id SPEC_ID
+work execute --spec-id SPEC_ID --execution-id EXECUTION_ID --operation-id OPERATION_ID --deliverable-id DELIVERABLE_ID --expected-revision N --confirm
+work status --execution-id EXECUTION_ID
+work recover --execution-id EXECUTION_ID --confirm
+work export --execution-id EXECUTION_ID --directory DIRECTORY
+```
+
+The lines above are argument shapes appended to
+`python -m agentmine.bootstrap.operator --db DATABASE --ledger LEDGER`; replace
+uppercase labels with actual IDs/paths, not literal placeholders. The global
+`--live-superteam-refresh --archive RAW_ARCHIVE` opt-in and authorized environment
+key are needed when an action requires a supported fresh source observation.
+Default offline source access fails closed. Merely reading this guide does not
+authorize live calls; do not seed fake marketplace facts to bypass prerequisites.
+
+The facts/profile schema is described under [eligibility review](#eligibility-review).
+Economics JSON uses `currency`, `predicted_success_probability`, `estimated_cost`
+and `cost_rationale`, with optional `cost_evidence`. The probability object contains
+`value`, `rationale` and optional evidence; estimated_cost contains the four decimal
+strings `ai`, `tool`, `infrastructure`, `transaction`. Probability and costs are
+explicit operator forecasts, not facts
+or actual charges. Deterministic execution requires zero estimated AI cost.
+Scoring JSON has `policy` (version/net_value_target/currency/rationale) and `signals`
+(risk/competition/deadline/ai_suitability/historical_performance), each with value,
+rationale and optional evidence. Unknown signal values remain null. Check the
+[current parser](../src/agentmine/presentation/runtime_inputs.py) before preparing
+inputs; no currency conversion or automatic favorable evidence is supplied.
+
+Choose a protected local input root. The Data manifest binds each source id,
+relative path, exact lowercase SHA-256, format (`csv`/`json`), locator and real
+collected_at timestamp. It also declares columns (name/path/kind and applicable
+constraints), unique_by, min_records/max_records, constraints and approved acceptance.
+Digest the reviewed UTF-8 file without BOM before approval; do not rewrite inputs
+to repair a mismatch. Each input is bounded to1,000,000 bytes, at most10 files;
+metadata manifests are bounded to64,000 bytes. Linked/reparse paths, traversal,
+duplicate/unknown JSON keys and unsupported semantic fields fail closed.
+
+`work prepare --approve-inputs` freezes snapshots/scope and consent; it does not
+execute. Add `--eligibility-review ACTUAL_REVIEW_ID` for a resolved MANUAL case;
+do not relabel it AUTOMATIC or reapply eligibility to discard the reviewed decision.
+Execute requires explicit confirmation and the current opportunity revision from
+`opportunity show`. Recovery retains original IDs: retained results repair
+cost/finish without recomputation; missing results require fresh preflight before
+deterministic replay. Unknown AI claims remain blocked. Never change IDs or clear
+commitments to force progress. See [runtime identity rationale](adr/0023-local-worker-runtime-foundation.md)
+and [v2 contract](design/data-partitioned-deliverables.md).
+
+`command_status` COMPLETED is execution history, not QA PASS or earnings. Inspect
+opportunity_state, recovery_reason, retained artifacts and QA separately. Export
+uses existing artifacts only, requires an existing local parent directory and
+no-clobber publication support. Identical retry is idempotent; conflicting files
+fail without overwrite. A crash may leave files without final manifest.json;
+inspect and retry the original operation. Local export never opens a URL or submits.
+
+## Operational QA
+
+Set acceptance in the input manifest **before** prepare/execution: nonempty bounded
+formats (artifact name/media type) and requirements (id/artifact/kind/criterion).
+Legacy kinds include column/section/literal/semantic; v2 adds field_present and
+requires explicit partition_acceptance matching output_policy. Choose criteria
+from actual requirements, not the output that happened to be produced. See
+[frozen v2 acceptance](design/data-partitioned-deliverables.md#artifacts-và-frozen-acceptance).
+
+Use the original execution and a stable inspection ID:
+
+```text
+work qa --execution-id EXECUTION_ID --inspection-id INSPECTION_ID --confirm
+work status --execution-id EXECUTION_ID
+```
+
+New QA loads retained plan/result/deliverable/digest and approved criteria, with
+fresh source/authority checks. The operator does not supply a QA outcome or an
+arbitrary filesystem/URL inspection. Same-ID retry reads the original persisted
+report and completes it without recomputing or changing a later lifecycle state;
+stale/conflicting evidence fails closed. Completed readback does not grant fresh
+external permission. Deterministic zero-AI composition does not enable semantic QA;
+unsupported semantic requirements remain human-review pending.
+
+PASS transitions to READY_FOR_HUMAN_REVIEW, then reuse existing `review`,
+`show-review` and `decide` commands. Eligibility, spending and submission consent
+are distinct. FAIL/NEEDS_REVISION requires the authorized revision workflow;
+first-version replay cannot stand in for rework. Human-pending QA is not approval.
+See [QA tests/evidence](testing/partitioned-deliverables.md).
+
+## Eligibility review
+
+`eligibility prepare --opportunity ID --review-id ID --facts FILE --minimum-time-seconds N`
+retains reviewed source/facts/policy evidence. `eligibility show --review-id ID`
+reads it back. `eligibility decide --review-id ID --decision APPROVE|REJECT --reason TEXT`
+requires the trusted actor. APPROVE additionally requires `--manual-destination`,
+`--instructions-evidence`, `--access-evidence`, `--requirements-evidence` and
+`--manual-requirements-met`. Inspect CLI help for complete argument usage.
+
+Facts JSON contains `facts` and `profile` objects. Facts may specify ai_policy,
+geography (allowed/excluded), account, identity, physical_presence, task_type,
+required_skills, submission, payment (upfront_fee/secret_credentials), and
+prohibited_actions. Profile may specify country/skills, account_requirement_met,
+identity_requirement_met and will_disclose_ai. Check
+[facts parser](../src/agentmine/presentation/eligibility_inputs.py) for typed values.
+Missing facts remain UNKNOWN; source refresh supplies open/deadline facts and cannot
+be overridden by input JSON. Do not copy permissive test facts into a real review.
+
+Prepare/decide require authoritative refresh; the disabled default blocks them.
+Evidence must describe current terms and actual account access without credentials.
+Only supported reviewable reasons can be resolved. A material source/facts/policy
+change invalidates old authority; approval is not permanent permission and never
+substitutes for deliverable, spending or submission approval. Rationale remains in
+[ADR0022](adr/0022-human-eligibility-resolution.md).
+
+## Budget policy control
+
+Budget commands use the authoritative ledger without a marketplace call:
+
+```text
+budget show
+budget policy prepare --change-id CHANGE_ID --inputs FILE --expected-revision N --reason TEXT
+budget policy show --change-id CHANGE_ID
+budget policy apply --change-id CHANGE_ID --confirm
+```
+
+Policy JSON requires exactly seven string values: monthly_ai_budget,
+daily_ai_budget, max_cost_per_task, human_approval_cost_threshold,
+saver_remaining_ratio, saver_ai_cost_factor, requested_mode. Numeric strings use
+bounded plain decimals; modes are full/saver/scout_only. Currency/timezone remain
+from the ledger. No replacement Budget snapshot, cost record, authorization or
+currency/timezone override is accepted. See [policy parser](../src/agentmine/presentation/budget_cli.py#L66).
+
+Read current revision from budget show; prepare retains the immutable proposed
+delta/actor/reason without changing policy. Inspect before apply. Apply requires
+the same trusted actor, original ID and explicit confirmation. Ledger/audit/decision/
+receipt commit atomically; same-ID retry returns the original receipt even after
+later policy changes. For a stale unapplied proposal, inspect state and prepare a
+new reviewed change, never alter its payload. Requested FULL cannot override a
+derived constrained mode. Lower limits can expose negative remaining/overcommit;
+existing commitments, actual costs and released identities remain preserved.
+
+Policy consent grants neither spending approval nor automatic resume. Paid/legacy
+waits and ambiguous outcomes stay inspect-only; unknown cost is not zero. Do not
+use workspace init as policy reset. See [transaction rationale](adr/0027-audited-local-budget-control.md).
+
+## Sao lưu, phục hồi cô lập và nguyên tắc không gửi lại
+
+Sao lưu trước bảo trì, chuyển máy hoặc điều tra một thao tác có kết quả chưa rõ.
+Dừng các process/operator đang truy cập workspace; giữ nguyên database gốc, ledger,
+actor và các ID execution/operation/handoff/submission/evidence. Không gửi lại hoặc
+tạo ID thay thế trong khi điều tra. Lưu backup trong thư mục riêng được bảo vệ,
+ngoài repository và nơi xuất bản; bảo toàn approved inputs/raw archives riêng nếu có.
+
+AgentMine chưa có backup/restore CLI. Đoạn PowerShell dưới dùng **SQLite backup API
+của Python standard library**, không copy riêng file SQLite đang hoạt động. Đây là
+thao tác operator chủ động, không phải lệnh tự chạy trong workflow. Thay các giá trị
+UPPERCASE bằng đường dẫn thực; thư mục đích phải tồn tại và file đích chưa tồn tại.
+
+```powershell
+$python = '.\.venv\Scripts\python.exe'
+function Copy-VerifiedSqliteSnapshot {
+    param([string]$Source, [string]$Destination)
+    @'
+import sqlite3
+import sys
+from contextlib import closing
+from pathlib import Path
+
+source = Path(sys.argv[1]).resolve(strict=True)
+target = Path(sys.argv[2])
+if not source.is_file() or not target.parent.is_dir():
+    raise ValueError("Existing source file and destination parent required")
+if target.resolve() == source or target.exists():
+    raise ValueError("Use a new, separate destination; never overwrite")
+with target.open("xb"):
+    pass
+with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as src:
+    with closing(sqlite3.connect(target.resolve().as_uri() + "?mode=rw", uri=True)) as dst:
+        src.backup(dst)
+with closing(sqlite3.connect(target.resolve().as_uri() + "?mode=ro", uri=True)) as check:
+    if check.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
+        raise RuntimeError("Backup integrity check failed; stop")
+print("SQLITE_SNAPSHOT_INTEGRITY_OK")
+'@ | & $python -B - $Source $Destination
+    if ($LASTEXITCODE -ne 0) { throw 'Backup/readback failed; stop and inspect.' }
+}
+
+$sourceDb = 'EXISTING_WORKSPACE_DATABASE'
+$backupDb = 'NEW_PRIVATE_BACKUP_FILE'
+Copy-VerifiedSqliteSnapshot -Source $sourceDb -Destination $backupDb
+
+# Phục hồi để kiểm tra: tạo thêm một snapshot cô lập, không ghi đè database gốc.
+$isolatedDb = 'NEW_ISOLATED_INSPECTION_DATABASE'
+Copy-VerifiedSqliteSnapshot -Source $backupDb -Destination $isolatedDb
+```
+
+Nếu lỗi, giữ các file để điều tra; script không tự xóa partial output và không ghi
+đè khi retry. Không bỏ WAL/journal hoặc copy một live database file đơn lẻ để tuyên
+bố backup nhất quán. `integrity_check=ok` chỉ kiểm cấu trúc SQLite, không chứng minh
+đủ business evidence hay external outcome. Dùng bản cô lập để kiểm đúng ledger/actor,
+claims, history và original IDs trước khi coi backup là dùng được. Ví dụ readback
+của một handoff đã tồn tại, không thêm live-refresh flag hoặc lệnh confirm:
+
+```powershell
+& $python -B -m agentmine.bootstrap.operator --db $isolatedDb --ledger ACTUAL_LEDGER submission handoff show --handoff-id ORIGINAL_HANDOFF_ID
+& $python -B -m agentmine.bootstrap.operator --db $isolatedDb --ledger ACTUAL_LEDGER submission handoff receipt-show --handoff-id ORIGINAL_HANDOFF_ID
+```
+
+Không chạy hai restored copies như hai authority độc lập. Backup cũ hơn một lần
+gửi/chuyển tiền có thể không ghi nhận việc đó; **không có record không chứng minh
+external action chưa xảy ra**. Bản cô lập chỉ để inspection, không dispatch/confirm.
+Chỉ chọn lại một authoritative workspace qua quyết định operator, giữ các bản khác
+không hoạt động. Không đổi IDs, xóa claims hoặc release commitments để mở khóa.
+
+Nếu submission/payment outcome chưa rõ: dừng mọi resend/retry có external effect,
+giữ nguyên bằng chứng và nhờ operator đối chiếu qua kênh độc lập được phép. Không
+tự gửi lại, ký/chuyển tiền hoặc đánh dấu PAID. Khi authoritative state còn nguyên,
+chỉ dùng original-ID show và quy trình receipt giống hệt đã được kiểm tra để hoàn
+tất local writes; receipt không chứng minh platform đã nhận hoặc đã trả tiền.
+Thiếu/conflicting ownership hoặc evidence thì dừng và giữ mọi bản sao. Không có
+automatic external reconciliation hay disaster-recovery certification được hứa hẹn.
+Xem [backup/readback regression](../tests/integration/test_manual_handoff.py#L572),
+[handoff parser/view](../src/agentmine/presentation/manual_handoff_cli.py#L42) và
+[payment trust boundaries](production-readiness.md#submission-outcome-and-payment-boundaries).
+
+## Quy trình CLI cho revision đã được duyệt
+
+Revision tạo version mới của cùng Task/lineage; không phải replay v1, không tạo
+Task mới để né ownership. Các ví dụ dưới là thao tác riêng biệt để operator review,
+không phải script run-all. Giữ nguyên operating mode/budget và actor của workspace.
+Không dùng fixture IDs/facts trong workspace thật.
+
+### 1. Xác định parent và trigger thực tế
+
+```powershell
+$python = '.\.venv\Scripts\python.exe'
+$base = @('-m', 'agentmine.bootstrap.operator', '--db', 'AUTHORITATIVE_DATABASE', '--ledger', 'ACTUAL_LEDGER')
+& $python @base opportunity show --opportunity OPPORTUNITY_ID
+& $python @base work status --execution-id PARENT_EXECUTION_ID
+```
+
+Dùng execution ID đã lưu từ lần chạy gốc, không đoán ID từ task/version. Nếu không
+giữ được ID, dừng để đối chiếu hồ sơ authoritative; hướng dẫn này không có lệnh
+lookup-all hay SQL sửa ownership. `opportunity show` cho task và opportunity_revision
+(optimistic concurrency revision, không phải deliverable version). `work status`
+cho binding, current_execution/current_deliverable, deliverable.version,
+requested_execution_is_current và qa.inspection/qa.report/qa.applied. Chọn đúng
+completed parent hiện hành, không dùng historical readback để cấp quyền mới.
+
+- QA FAIL/NEEDS_REVISION đã applied: dùng `--trigger qa --trigger-id PARENT_INSPECTION_ID`
+  từ qa.inspection, không thay bằng một report/ID tự đặt.
+- QA PASS rồi operator yêu cầu sửa: dùng review thực tế và áp dụng quyết định riêng:
+
+```text
+review --opportunity OPPORTUNITY_ID --review-id PARENT_REVIEW_ID --destination SUPPORTED_DESTINATION
+show-review --review-id PARENT_REVIEW_ID
+decide --review-id PARENT_REVIEW_ID --decision REQUEST_REVISION --reason "Lý do sửa đã review"
+```
+
+Các argument shapes trên nối sau `$python @base`; giữ đúng destination/scope/version
+đã xem xét. Sau decision đã applied, prepare dùng `--trigger operator --trigger-id PARENT_REVIEW_ID`.
+QA REQUIRES_HUMAN_REVIEW chưa phải revision permission; không ép thành FAIL/PASS.
+
+### 2. Prepare, inspect và approve scope mới
+
+Chỉ cấu hình `$live` khi đã có quyền read-only source và key được cung cấp an toàn;
+không chứa key trong command/manifest. Thiếu authoritative refresh thì dừng, không
+fallback mock. Các JSON dùng schema hiện hữu ở phần [Data commands](#deterministic-data-commands).
+Evidence/forecasts phải thật, thresholds không được nới để output mới đạt PASS.
+
+```powershell
+$live = @('--live-superteam-refresh', '--archive', 'AUTHORIZED_RAW_ARCHIVE')
+& $python @base @live work revision prepare --revision-id REVISION_ID --parent-execution PARENT_EXECUTION_ID --trigger qa --trigger-id PARENT_INSPECTION_ID --spec-id NEW_SPEC_ID --evaluation NEW_EVALUATION_ID --inputs REVISED_MANIFEST --input-root APPROVED_INPUT_DIRECTORY --facts CURRENT_FACTS --minimum-time-seconds 3600 --economics CURRENT_ECONOMICS --scoring CURRENT_SCORING --forecast-evidence ACTUAL_FORECAST_EVIDENCE --reason 'Sửa theo yêu cầu đã review'
+& $python @base work revision show --revision-id REVISION_ID
+# Chỉ sau khi kiểm đúng input digests, criteria, forecasts và scope:
+& $python @base @live work revision approve --revision-id REVISION_ID --execution-id NEW_EXECUTION_ID --operation-id NEW_OPERATION_ID --approve-inputs --confirm
+& $python @base work revision show --revision-id REVISION_ID
+```
+
+Thay 3600 bằng policy thời gian thực tế, không mặc định đó là đủ cho mọi task.
+Prepare giữ proposal, không consent/dispatch. Show cho parent execution/deliverable/QA,
+trigger, scope/differences, status/recovery_reason, forecasts, consent và allocation.
+Approve duyệt exact retained request, allocator chọn sequential version; không có
+flag chọn version hay thay deliverable ID. Kiểm allocation.version và
+allocation.binding trước execute. Revision/spending/eligibility/submission consent
+vẫn riêng biệt; giữ cùng output policy và non-relaxing acceptance.
+
+### 3. Execute, QA và kiểm lịch sử
+
+```powershell
+& $python @base @live work revision execute --revision-id REVISION_ID --confirm
+& $python @base work revision show --revision-id REVISION_ID
+& $python @base work status --execution-id NEW_EXECUTION_ID
+& $python @base @live work qa --execution-id NEW_EXECUTION_ID --inspection-id NEW_INSPECTION_ID --confirm
+& $python @base work status --execution-id NEW_EXECUTION_ID
+& $python @base opportunity show --opportunity OPPORTUNITY_ID
+```
+
+Dùng execution ID đúng allocation, inspection ID mới cho exact new version; không
+chuyển QA/approval từ parent dù output bytes giống nhau. Xem qa.report.findings,
+artifact content reference, retained_results.artifacts và deliverable.version.
+Export nếu cần bằng `work export --execution-id NEW_EXECUTION_ID --directory NEW_EXPORT_DIRECTORY`;
+parent export directory phải tồn tại và no-clobber rules vẫn áp dụng. PASS chỉ
+READY_FOR_HUMAN_REVIEW; review/approval version mới là bước riêng, không auto-submit.
+
+Mất acknowledgement thì inspect original revision rồi chỉ recover cùng ID:
+
+```powershell
+& $python @base work revision show --revision-id REVISION_ID
+& $python @base @live work revision recover --revision-id REVISION_ID --confirm
+```
+
+Same-ID retry không được đổi payload/inputs/operation. Stale source, changed terms,
+parent/ledger conflict hoặc unknown paid claim phải giữ blocked; không chọn ID mới
+để lách allocation. QA FAIL/NEEDS_REVISION version mới cần một revision request mới
+từ completed parent mới và trigger đã applied, không execute lại first version.
+Không có supersession hoặc claim-release command để tự cứu stale allocation.
+
+Revision views báo external_submission=false, payment_simulated=false và
+revision_consent_grants_submission_approval=false; work status cũng báo
+external_submission=false. Kiểm đúng version/state và opportunity show có
+verified_revenue; workflow này không được tự tạo approval/submission/revenue.
+Các flags là cam kết local code path, không chứng minh con người hoặc hệ thống khác
+chưa hành động bên ngoài. Nếu có nghi ngờ external effect, áp dụng no-resend ở trên.
+
+Nguồn hành vi hiện tại: [revision parser/view](../src/agentmine/presentation/revision_cli.py#L49),
+[runtime status](../src/agentmine/presentation/runtime_cli.py#L121),
+[QA và separate-review tests](../tests/integration/test_revision_operator_qa.py#L132),
+[stale-snapshot test](../tests/integration/test_revision_operator_qa.py#L754) và
+[v2 partition revision test](../tests/integration/test_partition_runtime_e2e.py#L539).

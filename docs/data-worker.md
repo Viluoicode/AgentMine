@@ -2,6 +2,13 @@
 
 ## Scope and architecture
 
+The default v1 contract below is preserved. Explicit opt-in v2 adds clean/rejected
+partitions with frozen acceptance thresholds; it does not redefine
+`DataResult.valid` or silently change existing tasks. See the
+[partitioned deliverable design](design/data-partitioned-deliverables.md) and
+[independent offline tests](testing/partitioned-deliverables.md) for current
+artifact, provenance, replay and compatibility boundaries.
+
 `DataWorker.execute(DataPlan) -> DataResult` implements the application-owned
 `Worker[DataPlan, DataResult]` port. Worker now has explicit plan/result type parameters;
 ResearchWorker remains `Worker[TaskPlan, ResearchResult]`. Domain is unchanged.

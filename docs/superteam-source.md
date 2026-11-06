@@ -177,3 +177,20 @@ introduced. The raw digest verifies retained content integrity, not authenticity
 Exit 0: all selected evidence is resolved, including honest quarantine or empty
 feed. Exit 1: incomplete/conflicting/invalid/unavailable evidence. Exit 2: argparse
 usage error. Coverage alone does not cause failure. Keep the archive private.
+
+## Public evidence boundaries
+
+Discovery diagnostics describe retained observations, not marketplace-wide coverage.
+An empty selected feed does not prove that Superteam has no opportunities; quarantine
+does not establish ineligibility of every listing. Raw digest/reference/timestamp and
+normalization issue codes remain evidence of what was captured, not authentication
+of all marketplace terms. Do not relabel unsupported rewards as USD or invent missing
+eligibility facts to populate the normalized inventory.
+
+Local Data simulations use explicitly identified test-only sources/clocks. They do
+not establish current agentAccess=AGENT_ALLOWED/AGENT_ONLY for a real listing or
+permission to submit. The [public Data design](design/data-partitioned-deliverables.md)
+and [offline test evidence](testing/partitioned-deliverables.md) explain what those
+simulations prove. Live eligibility, terms freshness, client acceptance and payment
+remain separate evidence requirements; publication of the local workflow is not
+production approval.

@@ -4,7 +4,7 @@
 
 Implemented for the approved **F05-B1 foundation** on 2026-10-28. Extends ADRs
 0023–0027 and the approved decisions in
-[F05-A](../audits/remediation-05-versioned-rework-plan.md). Revision orchestration,
+[versioned rework boundaries](../design/data-partitioned-deliverables.md#provenance-revision-và-replay). Revision orchestration,
 source refresh orchestration, CLI and operational version-aware QA remain deferred.
 
 ## Context

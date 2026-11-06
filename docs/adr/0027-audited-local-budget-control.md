@@ -4,7 +4,7 @@
 
 Implemented for the explicitly approved F02-B4-1 scope on 2026-10-26.
 Implements the approved subset of the
-[B4-A plan](../audits/remediation-03-b4-budget-recovery-plan.md), extending ADRs
+[budget-policy consent workflow](../operator-interface.md#budget-policy-control), extending ADRs
 0002, 0007 and 0023-0026. Paid wait/resume remains deferred.
 
 ## Context

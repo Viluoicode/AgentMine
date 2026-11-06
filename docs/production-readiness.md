@@ -5,6 +5,38 @@ working tree was clean before this documentation-only review.
 
 ## Decision: NOT_READY for production V1
 
+Publication reference update, 2026-11-05: the dated review below retains its
+historical findings and classifications. Subsequent deterministic local Data,
+versioned rework and offline evidence capabilities do not themselves close its
+live-integration/deployment blockers. See the current
+[operator workflow](operator-interface.md#deterministic-data-commands) and
+[offline acceptance evidence](testing/partitioned-deliverables.md).
+
+### Submission outcome and payment boundaries
+
+The public architecture distinguishes an exact approved deliverable from authority
+to submit it. A submission envelope binds version/digest, account/channel, destination
+and outbound representation; input/eligibility/spending approval cannot replace
+separate submission consent. Preserve immutable evidence and original operation
+identities; an unknown external result must not trigger another send.
+
+The local manual handoff foundation retains a package and provisional receipt;
+operator assertions or imported outcome/payment hints are not independently
+authenticated platform facts. Acceptance is separate from payment. No production
+settlement provider, real asset/network/recipient or monetary obligation is selected
+merely by offline evidence capture. Unverified hints cannot create authoritative
+PaymentEvidence, PAID or verified revenue. Forecast reward and accepted reward are
+not revenue. Net verified value must use independently verified reward and recorded
+costs, with unknown costs remaining explicit.
+
+The foundation rationale remains in [ADR0029](adr/0029-immutable-submission-context-foundation.md),
+[manual handoff ADR0030](adr/0030-atomic-manual-submission-handoff.md),
+[outcome evidence ADR0031](adr/0031-authoritative-outcome-evidence.md) and
+[provisional payment ADR0032](adr/0032-provisional-payment-evidence-foundation.md).
+These are bounded offline capabilities, not proof of live marketplace compatibility
+or real earnings. This section replaces publication links to internal design plans;
+it does not change their historical decisions or the NOT_READY review verdict.
+
 AgentMine has a tested local foundation and can demonstrate the complete business
 flow with synthetic external services. That does **not** establish a working,
 secure, recoverable real-marketplace work-to-earn deployment. Production release

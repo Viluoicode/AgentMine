@@ -3,7 +3,7 @@
 ## Status
 
 Implemented for **F03-B1**, 2026-10-31. Applies the approved B1 policies from
-[F03-A](../audits/remediation-06-submission-payment-plan.md). No handoff, external
+[submission and payment boundaries](../production-readiness.md#submission-outcome-and-payment-boundaries). No handoff, external
 submission, account mutation, outcome verification or payment capability is enabled.
 
 ## Context
